@@ -223,27 +223,16 @@ void loop() {
           mode = PHONEBOOK;
         }
       } else if (mode == DIAL) {
-        screen.print(number);
+        numberInput(key, number, sizeof(number));
         softKeys("back", "call");
         
-        if (key == '*') {
-          if (strlen(number) > 0) {
-            number[strlen(number) - 1] = 0;
-          }
-        }
-        else if (key == 'L') {
+        if (key == 'L') {
           mode = HOME;
         } else if (key == 'R') {
           if (strlen(number) > 0) {
             mode = HOME; // for after call ends
             vcs.voiceCall(number);
             while (!vcs.ready());
-          }
-        } else if (key) {
-          int len = strlen(number);
-          if (len < sizeof(number) - 1) {
-            number[len] = key;
-            number[len + 1] = 0;
           }
         }
       } else if (mode == PHONEBOOK || mode == MISSEDCALLS) {
@@ -326,16 +315,12 @@ void loop() {
         }
         
         screen.println("Name:");
-        if (entryField != NAME) screen.print(entryName);
+        if (entryField != NAME) screen.println(entryName);
         else textInput(key, entryName, sizeof(entryName));
         
         screen.println("Number:");
-        screen.print(entryNumber);
-        if (entryField == NUMBER) {
-          screen.setTextColor(WHITE, BLACK);
-          screen.print(" ");
-          screen.setTextColor(BLACK);
-        }
+        if (entryField != NUMBER) screen.println(entryNumber);
+        else numberInput(key, entryNumber, sizeof(entryNumber));
                 
         softKeys("cancel", "save");
 
@@ -344,18 +329,13 @@ void loop() {
         }
         
         if (entryField == NUMBER) {
-          if (key >= '0' && key <= '9') {
-            int i = strlen(entryNumber);
-            if (i < 14) { entryNumber[i] = key; entryNumber[i + 1] = 0; }
-          }
-          if (key == '*') {
-            int i = strlen(entryNumber);
-            if (i > 0) { entryNumber[i - 1] = 0; }
-          }
           if (key == 'U') entryField = NAME;
         }
         
-        if (key == 'L') mode = PHONEBOOK;
+        if (key == 'L') {
+          mode = PHONEBOOK;
+          back = true;
+        }
         if (key == 'R') {
           savePhoneBookEntry(entryIndex, entryName, entryNumber);
           mode = PHONEBOOK;
@@ -570,6 +550,23 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
     phoneBookNumbers[i][0] = 0;
   }
   return endingIndex;
+}
+
+void numberInput(char key, char *buf, int len)
+{
+  screen.print(buf);
+  screen.setTextColor(WHITE, BLACK);
+  screen.print(" ");
+  screen.setTextColor(BLACK);
+  
+  if (key >= '0' && key <= '9') {
+    int i = strlen(buf);
+    if (i < len - 1) { buf[i] = key; buf[i + 1] = 0; }
+  }
+  if (key == '*') {
+    int i = strlen(buf);
+    if (i > 0) { buf[i - 1] = 0; }
+  }
 }
 
 void textInput(char key, char *buf, int len)
