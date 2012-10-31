@@ -12,6 +12,7 @@
 
 GSM gsmAccess(true);
 GSMVoiceCall vcs(false);
+GSM_SMS sms(false);
 GSM3ShieldV1VoiceProvider vp;
 GSM3ClockService clock;
 PhoneBook pb;
@@ -43,7 +44,7 @@ char number[20];
 
 boolean missed;
 
-enum Mode { NOMODE, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, MENU, MISSEDCALLS, SETTIME };
+enum Mode { NOMODE, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, SETTIME };
 Mode mode = HOME, prevmode;
 boolean initmode, back;
 
@@ -60,6 +61,7 @@ menuentry_t mainmenu[] = {
 
 menuentry_t phoneBookEntryMenu[] = {
   { "Call", PHONEBOOK, callPhoneBookEntry },
+  { "Text", EDITTEXT, initTextFromPhoneBookEntry },
   { "Edit", EDITENTRY, 0 },
   { "Delete", PHONEBOOK, deletePhoneBookEntry }
 };
@@ -88,13 +90,15 @@ int phoneBookFirstPageOffset;
 
 #define PHONEBOOKENTRY() ((phoneBookPage == 0) ? phoneBookLine - phoneBookFirstPageOffset : phoneBookLine)
 
-int editIndex;
-char editName[15], editNumber[15];
-enum EditField { NAME, NUMBER };
-EditField editField;
+int entryIndex;
+char entryName[15], entryNumber[15];
+enum EntryField { NAME, NUMBER };
+EntryField entryField;
+
+char text[141];
 
 char letters[10][10] = { 
-  { '.', ',', '0', 0 },
+  { '.', '?', ',', '0', 0 },
   { ' ', '1', 0 },
   { 'A', 'B', 'C', 'a', 'b', 'c', '2', 0 },
   { 'D', 'E', 'F', 'd', 'e', 'f', '3', 0 },
@@ -126,7 +130,6 @@ void setup() {
   screen.begin();
   screen.setContrast(35);
   screen.clearDisplay();
-  //screen.setTextSize(0.5);
   screen.setCursor(0,0);
   screen.display();
   
@@ -139,9 +142,6 @@ void setup() {
   }
   screen.println("connected.");
   screen.display();
-  
-//  clock.setTime(12, 10, 24, 15, 42, 0);
-//  while (!clock.ready());
   
   vcs.hangCall();
   
@@ -281,8 +281,8 @@ void loop() {
         if (key == 'L') mode = HOME;
         else if (key == 'R') {
           if (mode == PHONEBOOK && phoneBookPage == 0 && phoneBookLine == 0) {
-            editIndex = 0; editName[0] = 0; editNumber[0] = 0;
-            editField = NAME;
+            entryIndex = 0; entryName[0] = 0; entryNumber[0] = 0;
+            entryField = NAME;
             mode = EDITENTRY;
           } else {
             if (mode == PHONEBOOK) {
@@ -319,29 +319,19 @@ void loop() {
         }
       } else if (mode == EDITENTRY) {
         if (initmode) {
-          editIndex = phoneBookIndices[PHONEBOOKENTRY()];
-          strcpy(editName, phoneBookNames[PHONEBOOKENTRY()]);
-          strcpy(editNumber, phoneBookNumbers[PHONEBOOKENTRY()]);
-          editField = NAME;
+          entryIndex = phoneBookIndices[PHONEBOOKENTRY()];
+          strcpy(entryName, phoneBookNames[PHONEBOOKENTRY()]);
+          strcpy(entryNumber, phoneBookNumbers[PHONEBOOKENTRY()]);
+          entryField = NAME;
         }
         
         screen.println("Name:");
-        if (editField != NAME) screen.print(editName);
-        else if (millis() - lastKeyPressTime > 1000) {
-          screen.print(editName);
-          screen.setTextColor(WHITE, BLACK);
-          screen.print(" ");
-          screen.setTextColor(BLACK);
-        } else {
-          for (int i = 0; i < strlen(editName) - 1; i++) screen.print(editName[i]);
-          screen.setTextColor(WHITE, BLACK);
-          screen.print(editName[strlen(editName) - 1]);
-          screen.setTextColor(BLACK);
-        }
-        screen.println();
+        if (entryField != NAME) screen.print(entryName);
+        else textInput(key, entryName, sizeof(entryName));
+        
         screen.println("Number:");
-        screen.print(editNumber);
-        if (editField == NUMBER) {
+        screen.print(entryNumber);
+        if (entryField == NUMBER) {
           screen.setTextColor(WHITE, BLACK);
           screen.print(" ");
           screen.setTextColor(BLACK);
@@ -349,46 +339,37 @@ void loop() {
                 
         softKeys("cancel", "save");
 
-        if (editField == NAME) {
-          if (key >= '0' && key <= '9') {
-            if (millis() - lastKeyPressTime > 1000 || key - '0' != lastKey) {
-              // append new letter
-              lastKeyIndex = 0;
-              lastKey = key - '0';
-              int i = strlen(editName);
-              if (i < 14) { editName[i] = letters[lastKey][lastKeyIndex]; editName[i + 1] = 0; }
-            } else {
-              // cycle previously entered letter
-              lastKeyIndex++;
-              if (letters[lastKey][lastKeyIndex] == 0) lastKeyIndex = 0; // wrap around
-              int i = strlen(editName);
-              if (i > 0) { editName[i - 1] = letters[lastKey][lastKeyIndex]; }
-            }
-            lastKeyPressTime = millis();
-          }
-          if (key == '*') {
-            int i = strlen(editName);
-            if (i > 0) { editName[i - 1] = 0; }
-            lastKeyPressTime = 0;
-          }
-          if (key == 'D') editField = NUMBER;
+        if (entryField == NAME) {
+          if (key == 'D') entryField = NUMBER;
         }
         
-        if (editField == NUMBER) {
+        if (entryField == NUMBER) {
           if (key >= '0' && key <= '9') {
-            int i = strlen(editNumber);
-            if (i < 14) { editNumber[i] = key; editNumber[i + 1] = 0; }
+            int i = strlen(entryNumber);
+            if (i < 14) { entryNumber[i] = key; entryNumber[i + 1] = 0; }
           }
           if (key == '*') {
-            int i = strlen(editNumber);
-            if (i > 0) { editNumber[i - 1] = 0; }
+            int i = strlen(entryNumber);
+            if (i > 0) { entryNumber[i - 1] = 0; }
           }
-          if (key == 'U') editField = NAME;
+          if (key == 'U') entryField = NAME;
         }
         
         if (key == 'L') mode = PHONEBOOK;
         if (key == 'R') {
-          savePhoneBookEntry(editIndex, editName, editNumber);
+          savePhoneBookEntry(entryIndex, entryName, entryNumber);
+          mode = PHONEBOOK;
+        }
+      } else if (mode == EDITTEXT) {
+        textInput(key, text, sizeof(text));
+        softKeys("cancel", "send");
+        
+        if (key == 'L') {
+          mode = PHONEBOOK;
+          back = true;
+        } 
+        if (key == 'R') {
+          sendText(number, text);
           mode = PHONEBOOK;
         }
       } else if (mode == MENU) {
@@ -505,6 +486,18 @@ void loop() {
   }
 }
 
+void initTextFromPhoneBookEntry() {
+  strcpy(number, phoneBookNumbers[PHONEBOOKENTRY()]);
+  text[0] = 0;
+}
+
+void sendText(char *number, char *text)
+{
+  sms.beginSMS(number);
+  for (; *text; text++) sms.write(*text);
+  sms.endSMS();
+}
+
 void callPhoneBookEntry() {
   vcs.voiceCall(phoneBookNumbers[PHONEBOOKENTRY()]);
   while (!vcs.ready());
@@ -577,6 +570,43 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
     phoneBookNumbers[i][0] = 0;
   }
   return endingIndex;
+}
+
+void textInput(char key, char *buf, int len)
+{
+  if (millis() - lastKeyPressTime > 1000) {
+    screen.print(buf);
+    screen.setTextColor(WHITE, BLACK);
+    screen.print(" ");
+    screen.setTextColor(BLACK);
+  } else {
+    for (int i = 0; i < strlen(buf) - 1; i++) screen.print(buf[i]);
+    screen.setTextColor(WHITE, BLACK);
+    screen.print(buf[strlen(buf) - 1]);
+    screen.setTextColor(BLACK);
+  }
+  screen.println();
+  if (key >= '0' && key <= '9') {
+    if (millis() - lastKeyPressTime > 1000 || key - '0' != lastKey) {
+      // append new letter
+      lastKeyIndex = 0;
+      lastKey = key - '0';
+      int i = strlen(buf);
+      if (i < len - 1) { buf[i] = letters[lastKey][lastKeyIndex]; buf[i + 1] = 0; }
+    } else {
+      // cycle previously entered letter
+      lastKeyIndex++;
+      if (letters[lastKey][lastKeyIndex] == 0) lastKeyIndex = 0; // wrap around
+      int i = strlen(buf);
+      if (i > 0) { buf[i - 1] = letters[lastKey][lastKeyIndex]; }
+    }
+    lastKeyPressTime = millis();
+  }
+  if (key == '*') {
+    int i = strlen(buf);
+    if (i > 0) { buf[i - 1] = 0; }
+    lastKeyPressTime = 0;
+  }
 }
 
 void softKeys(char *left)
