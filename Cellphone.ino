@@ -44,8 +44,8 @@ char number[20];
 
 boolean missed;
 
-enum Mode { NOMODE, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, SETTIME };
-Mode mode = HOME, prevmode;
+enum Mode { NOMODE, TEXTALERT, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, TEXTS, SETTIME };
+Mode mode = HOME, prevmode, alertBackMode = mode;
 boolean initmode, back;
 
 struct menuentry_t {
@@ -166,10 +166,19 @@ void loop() {
   
   switch (vcs.getvoiceCallStatus()) {
     case IDLE_CALL:
+      if (mode != TEXTALERT) {
+        sms.available();
+        while (!sms.ready());
+        if (sms.ready() == 1) {
+          alertBackMode = mode;
+          mode = TEXTALERT;
+        }
+      }
+
       initmode = (mode != prevmode) && !back;
       back = false;
       prevmode = mode;
-
+      
       if (mode == HOME || (mode == LOCKED && unlocking)) {
         screen.print("    ");
         if (clock.getHour() < 10) screen.print(' ');
@@ -183,8 +192,36 @@ void loop() {
         screen.setTextColor(BLACK);
         screen.print("     ");
       }
-
-      if (mode == LOCKED) {
+      
+      if (mode == TEXTALERT) {
+        if (initmode) {
+          sms.remoteNumber(number, sizeof(number));
+          int i = 0;
+          for (; i < sizeof(text) - 1; i++) {
+            int c = sms.read();
+            if (!c) break;
+            text[i] = c;
+          }
+          text[i] = 0;
+          sms.flush();
+        }
+        
+        screen.print(number);
+        screen.println(":");
+        
+        for (int i = 0; i < 56; i++) {
+          if (!text[i]) break;
+          screen.print(text[i]);
+        }
+        
+        softKeys("close", "reply");
+        
+        if (key == 'L') mode = alertBackMode;
+        if (key == 'R') {
+          text[0] = 0;
+          mode = EDITTEXT;
+        }
+      } else if (mode == LOCKED) {
         if (initmode) {
           unlocking = false;
           blank = false;
@@ -374,6 +411,10 @@ void loop() {
           mode = menuBackMode;
           back = true;
         }
+      } else if (mode == TEXTS) {
+        softKeys("back");
+        
+        if (key == 'L') mode = HOME;
       } else if (mode == SETTIME) {
         if (initmode) {
           hour = clock.getHour();
