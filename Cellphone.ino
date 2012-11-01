@@ -42,11 +42,11 @@ int x = 0, y = 0;
 
 char number[20];
 
-boolean missed;
+boolean missed = false;
 
 enum Mode { NOMODE, TEXTALERT, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, TEXTS, SETTIME };
-Mode mode = HOME, prevmode, alertBackMode = mode;
-boolean initmode, back;
+Mode mode = HOME, prevmode, backmode = mode, interruptedmode = mode;
+boolean initmode, back, fromalert;
 
 struct menuentry_t {
   char *name;
@@ -73,7 +73,6 @@ menuentry_t missedCallEntryMenu[] = {
 
 menuentry_t *menu;
 
-Mode menuBackMode;
 int menuLength;
 int menuLine;
 
@@ -95,7 +94,8 @@ char entryName[15], entryNumber[15];
 enum EntryField { NAME, NUMBER };
 EntryField entryField;
 
-char text[141];
+char text[161];
+int textline;
 
 char letters[10][10] = { 
   { '.', '?', ',', '0', 0 },
@@ -166,11 +166,11 @@ void loop() {
   
   switch (vcs.getvoiceCallStatus()) {
     case IDLE_CALL:
-      if (mode != TEXTALERT) {
+      if (mode != TEXTALERT && prevmode != TEXTALERT) {
         sms.available();
         while (!sms.ready());
         if (sms.ready() == 1) {
-          alertBackMode = mode;
+          interruptedmode = mode;
           mode = TEXTALERT;
         }
       }
@@ -203,23 +203,31 @@ void loop() {
             text[i] = c;
           }
           text[i] = 0;
-          sms.flush();
+          textline = 0;
+          sms.flush(); // XXX: should save to read message store, not delete
         }
         
         screen.print(number);
         screen.println(":");
         
-        for (int i = 0; i < 56; i++) {
+        for (int i = textline * 14; i < textline * 14 + 56; i++) {
           if (!text[i]) break;
           screen.print(text[i]);
         }
         
         softKeys("close", "reply");
         
-        if (key == 'L') mode = alertBackMode;
+        if (key == 'L') mode = interruptedmode;
         if (key == 'R') {
           text[0] = 0;
           mode = EDITTEXT;
+          fromalert = true;
+        }
+        if (key == 'U') {
+          if (textline > 0) textline--;
+        }
+        if (key == 'D') {
+          if (strlen(text) > (textline * 14 + 56)) textline++;
         }
       } else if (mode == LOCKED) {
         if (initmode) {
@@ -255,7 +263,7 @@ void loop() {
           mode = MENU;
           menu = mainmenu;
           menuLength = sizeof(mainmenu) / sizeof(mainmenu[0]);
-          menuBackMode = HOME;
+          backmode = HOME;
         } else if (key == 'D') {
           mode = PHONEBOOK;
         }
@@ -315,13 +323,13 @@ void loop() {
               mode = MENU;
               menu = phoneBookEntryMenu;
               menuLength = sizeof(phoneBookEntryMenu) / sizeof(phoneBookEntryMenu[0]);
-              menuBackMode = PHONEBOOK;
+              backmode = PHONEBOOK;
             }
             if (mode == MISSEDCALLS) {
               mode = MENU;
               menu = missedCallEntryMenu;
               menuLength = sizeof(missedCallEntryMenu) / sizeof(missedCallEntryMenu[0]);
-              menuBackMode = MISSEDCALLS;
+              backmode = MISSEDCALLS;
             }
           }
         } else if (key == 'D') {
@@ -382,12 +390,13 @@ void loop() {
         softKeys("cancel", "send");
         
         if (key == 'L') {
-          mode = PHONEBOOK;
+          mode = (fromalert ? HOME : PHONEBOOK);
           back = true;
         } 
         if (key == 'R') {
           sendText(number, text);
-          mode = PHONEBOOK;
+          mode = HOME;
+          back = true;
         }
       } else if (mode == MENU) {
         if (initmode) menuLine = 0;
@@ -408,7 +417,7 @@ void loop() {
           mode = menu[menuLine].mode;
           if (menu[menuLine].f) menu[menuLine].f();
         } else if (key == 'L') {
-          mode = menuBackMode;
+          mode = backmode;
           back = true;
         }
       } else if (mode == TEXTS) {
@@ -510,6 +519,7 @@ void loop() {
 void initTextFromPhoneBookEntry() {
   strcpy(number, phoneBookNumbers[PHONEBOOKENTRY()]);
   text[0] = 0;
+  fromalert = false;
 }
 
 void sendText(char *number, char *text)
