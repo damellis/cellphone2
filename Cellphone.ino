@@ -62,7 +62,7 @@ menuentry_t mainmenu[] = {
 menuentry_t phoneBookEntryMenu[] = {
   { "Call", PHONEBOOK, callPhoneBookEntry },
   { "Text", EDITTEXT, initTextFromPhoneBookEntry },
-  { "Edit", EDITENTRY, 0 },
+  { "Edit", EDITENTRY, initEditEntryFromPhoneBookEntry },
   { "Delete", PHONEBOOK, deletePhoneBookEntry }
 };
 
@@ -166,7 +166,7 @@ void loop() {
   
   switch (vcs.getvoiceCallStatus()) {
     case IDLE_CALL:
-      if (mode != TEXTALERT && prevmode != TEXTALERT) {
+      if (mode != TEXTALERT && prevmode != TEXTALERT && mode != LOCKED) {
         sms.available();
         while (!sms.ready());
         if (sms.ready() == 1) {
@@ -316,7 +316,6 @@ void loop() {
         else if (key == 'R') {
           if (mode == PHONEBOOK && phoneBookPage == 0 && phoneBookLine == 0) {
             entryIndex = 0; entryName[0] = 0; entryNumber[0] = 0;
-            entryField = NAME;
             mode = EDITENTRY;
           } else {
             if (mode == PHONEBOOK) {
@@ -352,12 +351,7 @@ void loop() {
           }
         }
       } else if (mode == EDITENTRY) {
-        if (initmode) {
-          entryIndex = phoneBookIndices[PHONEBOOKENTRY()];
-          strcpy(entryName, phoneBookNames[PHONEBOOKENTRY()]);
-          strcpy(entryNumber, phoneBookNumbers[PHONEBOOKENTRY()]);
-          entryField = NAME;
-        }
+        if (initmode) entryField = NAME;
         
         screen.println("Name:");
         if (entryField != NAME) screen.println(entryName);
@@ -516,6 +510,13 @@ void loop() {
   }
 }
 
+void initEditEntryFromPhoneBookEntry()
+{
+  entryIndex = phoneBookIndices[PHONEBOOKENTRY()];
+  strcpy(entryName, phoneBookNames[PHONEBOOKENTRY()]);
+  strcpy(entryNumber, phoneBookNumbers[PHONEBOOKENTRY()]);
+}
+
 void initTextFromPhoneBookEntry() {
   strcpy(number, phoneBookNumbers[PHONEBOOKENTRY()]);
   text[0] = 0;
@@ -527,6 +528,8 @@ void sendText(char *number, char *text)
   sms.beginSMS(number);
   for (; *text; text++) sms.write(*text);
   sms.endSMS();
+  
+  while (!sms.ready());
 }
 
 void callPhoneBookEntry() {
