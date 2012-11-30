@@ -17,7 +17,7 @@ GSM3ShieldV1VoiceProvider vp;
 GSM3ClockService clock;
 PhoneBook pb;
 
-unsigned long lastClockCheckTime;
+unsigned long lastClockCheckTime, lastSMSCheckTime;
 
 Adafruit_PCD8544 screen = Adafruit_PCD8544(16, 15, 14, 12, 13); // SCLK, DIN, D/C, CS, RST 
 
@@ -166,7 +166,8 @@ void loop() {
   
   switch (vcs.getvoiceCallStatus()) {
     case IDLE_CALL:
-      if (mode != TEXTALERT && prevmode != TEXTALERT && mode != LOCKED) {
+      if (mode != TEXTALERT && prevmode != TEXTALERT && mode != LOCKED && millis() - lastSMSCheckTime > 10000) {
+        lastSMSCheckTime = millis();
         sms.available();
         while (!sms.ready());
         if (sms.ready() == 1) {
