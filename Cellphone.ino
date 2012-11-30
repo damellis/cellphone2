@@ -43,7 +43,7 @@ char number[20];
 
 boolean missed = false;
 
-enum Mode { NOMODE, TEXTALERT, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, TEXTS, SETTIME };
+enum Mode { NOMODE, TEXTALERT, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, RECEIVEDCALLS, DIALEDCALLS, TEXTS, SETTIME };
 Mode mode = HOME, prevmode, backmode = mode, interruptedmode = mode;
 boolean initmode, back, fromalert;
 
@@ -55,6 +55,8 @@ struct menuentry_t {
 
 menuentry_t mainmenu[] = {
   { "Missed calls", MISSEDCALLS, 0 },
+  { "Received calls", RECEIVEDCALLS, 0 },
+  { "Dialed calls", DIALEDCALLS, 0 },
   { "Set time", SETTIME, 0 },
 };
 
@@ -65,7 +67,7 @@ menuentry_t phoneBookEntryMenu[] = {
   { "Delete", PHONEBOOK, deletePhoneBookEntry }
 };
 
-menuentry_t missedCallEntryMenu[] = {
+menuentry_t callLogEntryMenu[] = {
   { "Call", MISSEDCALLS, callPhoneBookEntry },
   { "Delete", MISSEDCALLS, deletePhoneBookEntry }
 };
@@ -280,17 +282,19 @@ void loop() {
             while (!vcs.ready());
           }
         }
-      } else if (mode == PHONEBOOK || mode == MISSEDCALLS) {
+      } else if (mode == PHONEBOOK || mode == MISSEDCALLS || mode == RECEIVEDCALLS || mode == DIALEDCALLS) {
         if (initmode) {
           if (mode == PHONEBOOK) pb.selectPhoneBook(PHONEBOOK_SIM);
           if (mode == MISSEDCALLS) pb.selectPhoneBook(PHONEBOOK_MISSEDCALLS);
+          if (mode == RECEIVEDCALLS) pb.selectPhoneBook(PHONEBOOK_RECEIVEDCALLS);
+          if (mode == DIALEDCALLS) pb.selectPhoneBook(PHONEBOOK_DIALEDCALLS);
           delay(300);
           phoneBookSize = pb.getPhoneBookSize();
           phoneBookPage = 0;
           phoneBookLine = 0;
           phoneBookIndexStart = 1;
           if (mode == PHONEBOOK) phoneBookFirstPageOffset = 1;
-          if (mode == MISSEDCALLS) phoneBookFirstPageOffset = 0;
+          else phoneBookFirstPageOffset = 0;
           phoneBookIndexEnd = loadphoneBookNamesForwards(phoneBookIndexStart, NUMPHONEBOOKLINES - phoneBookFirstPageOffset);
         }
 
@@ -323,12 +327,11 @@ void loop() {
               menu = phoneBookEntryMenu;
               menuLength = sizeof(phoneBookEntryMenu) / sizeof(phoneBookEntryMenu[0]);
               backmode = PHONEBOOK;
-            }
-            if (mode == MISSEDCALLS) {
+            } else {
               mode = MENU;
-              menu = missedCallEntryMenu;
-              menuLength = sizeof(missedCallEntryMenu) / sizeof(missedCallEntryMenu[0]);
-              backmode = MISSEDCALLS;
+              menu = callLogEntryMenu;
+              menuLength = sizeof(callLogEntryMenu) / sizeof(callLogEntryMenu[0]);
+              backmode = mode;
             }
           }
         } else if (key == 'D') {
@@ -398,7 +401,8 @@ void loop() {
         for (int i = 0; i < menuLength; i++) {
           if (menuLine == i) screen.setTextColor(WHITE, BLACK);
           else screen.setTextColor(BLACK);
-          screen.println(menu[i].name);
+          screen.print(menu[i].name);
+          if (strlen(menu[i].name) % 14 != 0) screen.println();
         }
         
         softKeys("back", "okay");
