@@ -13,7 +13,6 @@
 GSM gsmAccess(true);
 GSMVoiceCall vcs(false);
 GSM_SMS sms(false);
-GSM3ShieldV1VoiceProvider vp;
 GSM3ClockService clock;
 PhoneBook pb;
 
