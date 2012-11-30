@@ -322,16 +322,15 @@ void loop() {
             entryIndex = 0; entryName[0] = 0; entryNumber[0] = 0;
             mode = EDITENTRY;
           } else {
+            backmode = mode;
             if (mode == PHONEBOOK) {
               mode = MENU;
               menu = phoneBookEntryMenu;
               menuLength = sizeof(phoneBookEntryMenu) / sizeof(phoneBookEntryMenu[0]);
-              backmode = PHONEBOOK;
             } else {
               mode = MENU;
               menu = callLogEntryMenu;
               menuLength = sizeof(callLogEntryMenu) / sizeof(callLogEntryMenu[0]);
-              backmode = mode;
             }
           }
         } else if (key == 'D') {
