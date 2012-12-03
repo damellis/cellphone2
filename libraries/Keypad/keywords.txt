@@ -1,0 +1,19 @@
+Keypad	KEYWORD1
+KeypadEvent	KEYWORD1
+
+begin	KEYWORD2
+getKey	KEYWORD2
+getState	KEYWORD2
+setHoldTime	KEYWORD2
+setDebounceTime	KEYWORD2
+keyStateChanged	KEYWORD2
+addEventListener	KEYWORD2
+
+# this is a macro that converts 2d arrays to pointers
+makeKeymap	KEYWORD2
+
+# this is a way to standardize the client code, help enhance the use of the name keypadEvent
+keypadEvent	KEYWORD2
+
+NO_KEY	LITERAL1
+KEY_RELEASED	LITERAL1
