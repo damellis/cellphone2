@@ -41,9 +41,11 @@ int x = 0, y = 0;
 
 char number[20];
 
-boolean missed = false;
+int missed = 0;
 
-enum Mode { NOMODE, TEXTALERT, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, RECEIVEDCALLS, DIALEDCALLS, TEXTS, SETTIME };
+GSM3_voiceCall_st prevVoiceCallStatus;
+
+enum Mode { NOMODE, TEXTALERT, MISSEDCALLALERT, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, RECEIVEDCALLS, DIALEDCALLS, TEXTS, SETTIME };
 Mode mode = HOME, prevmode, backmode = mode, interruptedmode = mode;
 boolean initmode, back, fromalert;
 
@@ -165,9 +167,15 @@ void loop() {
   
   screen.setTextColor(BLACK);
   
-  switch (vcs.getvoiceCallStatus()) {
+  GSM3_voiceCall_st voiceCallStatus = vcs.getvoiceCallStatus();
+  switch (voiceCallStatus) {
     case IDLE_CALL:
-      if (mode != TEXTALERT && prevmode != TEXTALERT && mode != LOCKED && millis() - lastSMSCheckTime > 10000) {
+      if (mode != MISSEDCALLALERT && prevmode != MISSEDCALLALERT && mode != LOCKED && mode != TEXTALERT && missed > 0) {
+        interruptedmode = mode;
+        mode = MISSEDCALLALERT;
+      }
+    
+      if (mode != TEXTALERT && prevmode != TEXTALERT && mode != LOCKED && mode != MISSEDCALLALERT && millis() - lastSMSCheckTime > 10000) {
         lastSMSCheckTime = millis();
         sms.available();
         while (!sms.ready());
@@ -195,7 +203,24 @@ void loop() {
         screen.print("     ");
       }
       
-      if (mode == TEXTALERT) {
+      if (mode == MISSEDCALLALERT) {
+        screen.print("Missed: ");
+        screen.println(missed);
+        screen.println("Last from: ");
+        screen.print(number);
+        softKeys("close", "call");
+        
+        if (key == 'L') {
+          missed = 0;
+          mode = interruptedmode;
+        }
+        if (key == 'R') {
+          missed = 0;
+          mode = interruptedmode;
+          vcs.voiceCall(number);
+          //while (!vcs.ready());
+        }
+      } else if (mode == TEXTALERT) {
         if (initmode) {
           sms.remoteNumber(number, sizeof(number));
           int i = 0;
@@ -490,11 +515,14 @@ void loop() {
       screen.println("incoming:");
       screen.print(number);
       softKeys("end", "answer");
+      if (prevVoiceCallStatus != RECEIVINGCALL) missed++;
       if (key == 'L') {
+        missed--;
         vcs.hangCall();
         while (!vcs.ready());
       }
       if (key == 'R') {
+        missed--;
         vcs.answerCall();
         while (!vcs.ready());
       }
@@ -511,6 +539,8 @@ void loop() {
       }
       break;
   }
+  
+  prevVoiceCallStatus = voiceCallStatus;
 }
 
 void initEditEntryFromPhoneBookEntry()
