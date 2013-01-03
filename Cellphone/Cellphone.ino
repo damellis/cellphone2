@@ -126,6 +126,9 @@ boolean unlocking, blank;
 void setup() {
   Serial.begin(9600);
 
+  while (gsmAccess.begin() != GSM_READY) {
+    delay(1000);
+  }
   // turn on display  
   pinMode(17, OUTPUT);
   digitalWrite(17, HIGH);
@@ -140,9 +143,6 @@ void setup() {
   
   screen.println("connecting...");
   screen.display();
-  while (gsmAccess.begin() != GSM_READY) {
-    delay(1000);
-  }
   screen.println("connected.");
   screen.display();
   
@@ -269,7 +269,7 @@ void loop() {
           blank = false;
         } else {
           if (key) {
-            screen.begin();
+            //screen.begin();
             unlocking = true;
             lastKeyPressTime = millis();
           }
