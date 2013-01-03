@@ -269,6 +269,7 @@ void loop() {
           blank = false;
         } else {
           if (key) {
+            screen.begin();
             unlocking = true;
             lastKeyPressTime = millis();
           }
