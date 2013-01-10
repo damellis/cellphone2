@@ -80,7 +80,7 @@ bool GSM3ClockService::parseCCLK()
 	if (!(theGSM3ShieldV1ModemCore.theBuffer().chopUntil("+CCLK: ", true)))
 		return false;
 	
-	theGSM3ShieldV1ModemCore.theBuffer().read(); // "
+	//theGSM3ShieldV1ModemCore.theBuffer().read(); // "
 	year = theGSM3ShieldV1ModemCore.theBuffer().readInt();
 	theGSM3ShieldV1ModemCore.theBuffer().chopUntil("/", false);
 	month = theGSM3ShieldV1ModemCore.theBuffer().readInt();

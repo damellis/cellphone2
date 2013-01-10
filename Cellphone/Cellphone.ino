@@ -61,7 +61,7 @@ menuentry_t mainmenu[] = {
   { "Missed calls", MISSEDCALLS, 0 },
   { "Received calls", RECEIVEDCALLS, 0 },
   { "Dialed calls", DIALEDCALLS, 0 },
-  { "Set time", SETTIME, 0 },
+  { "Set date+time", SETTIME, 0 },
 };
 
 menuentry_t phoneBookEntryMenu[] = {
@@ -135,9 +135,11 @@ int lastKeyIndex;
 unsigned long lastKeyPressTime;
 boolean shiftNextKey;
 
-int hour, minute;
-enum SetTimeField { HOUR, TENS, ONES };
-SetTimeField setTimeField;
+int setTimeField;
+int setTimeValues[7]; // month, day, year (tens), year (ones), hour, minute (tens), minute (ones)
+int setTimeMin[7] = {  1,  1, 0, 0,  1, 0, 0 };
+int setTimeMax[7] = { 12, 31, 9, 9, 24, 9, 9 };
+char *setTimeSeparators[7] = { "/", "/", "", " ", ":", "", "" };
 
 boolean unlocking, blank;
 
@@ -208,17 +210,25 @@ void loop() {
       prevmode = mode;
       
       if (mode == HOME || (mode == LOCKED && unlocking)) {
-        screen.print("    ");
+        screen.setTextColor(WHITE, BLACK);
+        screen.print(clock.getMonth());
+        screen.print("/");
+        screen.print(clock.getDay());
+        screen.print("/");
+        if (clock.getYear() < 10) screen.print('0');
+        screen.print(clock.getYear());
+
+        screen.print(" ");
+        if (clock.getMonth() < 10) screen.print(' ');
+        if (clock.getDay() < 10) screen.print(' ');
         if (clock.getHour() < 10) screen.print(' ');
         
-        screen.setTextColor(WHITE, BLACK);
         screen.print(clock.getHour());
         screen.print(":");
         if (clock.getMinute() < 10) screen.print('0');
         screen.print(clock.getMinute());
         
         screen.setTextColor(BLACK);
-        screen.print("     ");
       }
       
       if (mode == MISSEDCALLALERT) {
@@ -467,45 +477,45 @@ void loop() {
         if (key == 'L') mode = HOME;
       } else if (mode == SETTIME) {
         if (initmode) {
-          hour = clock.getHour();
-          minute = clock.getMinute();
-          setTimeField = HOUR;
+          setTimeValues[0] = clock.getMonth();
+          setTimeValues[1] = clock.getDay();
+          setTimeValues[2] = clock.getYear() / 10;
+          setTimeValues[3] = clock.getYear() % 10;
+          setTimeValues[4] = clock.getHour();
+          setTimeValues[5] = clock.getMinute() / 10;
+          setTimeValues[6] = clock.getMinute() % 10;
+          setTimeField = 0;
         }
         
-        screen.println("Time:");
+        screen.println("Date & Time:");
         
-        if (setTimeField == HOUR) screen.setTextColor(WHITE, BLACK);
-        if (hour < 10) screen.print(" ");
-        screen.print(hour);        
-        screen.setTextColor(BLACK);
+        for (int i = 0; i < 7; i++) {
+          if (i == setTimeField) screen.setTextColor(WHITE, BLACK);
+          screen.print(setTimeValues[i]);
+          screen.setTextColor(BLACK);
+          screen.print(setTimeSeparators[i]);
+        } 
         
-        screen.print(":");
-        
-        if (setTimeField == TENS) screen.setTextColor(WHITE, BLACK);
-        screen.print(minute / 10);
-        screen.setTextColor(BLACK);
-        
-        if (setTimeField == ONES) screen.setTextColor(WHITE, BLACK);
-        screen.print(minute % 10);
-        screen.setTextColor(BLACK);
-        
-        softKeys("back", "okay");
+        if (setTimeField == 6) softKeys("cancel", "set");
+        else softKeys("cancel", "next");
         
         if (key == 'L') mode = HOME;
         
-        if (setTimeField == HOUR) {
-          if (key == 'U') hour = (hour + 1) % 24;
-          if (key == 'D') hour = (hour + 23) % 24;
-          if (key == 'R') setTimeField = TENS;
-        } else if (setTimeField == TENS) {
-          if (key == 'U') minute = (minute + 10) % 60;
-          if (key == 'D') minute = (minute + 50) % 60;
-          if (key == 'R') setTimeField = ONES;
-        } else if (setTimeField == ONES) {
-          if (key == 'U') minute = (minute / 10) * 10 + (minute % 10 + 1) % 10;
-          if (key == 'D') minute = (minute / 10) * 10 + (minute % 10 + 9) % 10;
-          if (key == 'R') {
-            clock.setTime(clock.getYear(), clock.getMonth(), clock.getDay(), hour, minute, 0);
+        if (key == 'U') {
+          setTimeValues[setTimeField]++;
+          if (setTimeValues[setTimeField] > setTimeMax[setTimeField]) setTimeValues[setTimeField] = setTimeMin[setTimeField];
+        }
+        
+        if (key == 'D') {
+          setTimeValues[setTimeField]--;
+          if (setTimeValues[setTimeField] < setTimeMin[setTimeField]) setTimeValues[setTimeField] = setTimeMax[setTimeField];
+        }
+        
+        if (key == 'R') {
+          setTimeField++;
+          if (setTimeField == 7) {
+            clock.setTime(setTimeValues[2] * 10 + setTimeValues[3], setTimeValues[0], setTimeValues[1],
+                          setTimeValues[4], setTimeValues[5] * 10 + setTimeValues[6], 0);
             while (!clock.ready());
             delay(300);
             clock.checkTime();
