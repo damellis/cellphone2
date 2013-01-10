@@ -100,22 +100,38 @@ EntryField entryField;
 char text[161];
 int textline;
 
-char letters[10][10] = { 
-  { '.', '?', ',', '0', 0 },
+char uppercase[10][10] = { 
+  { '.', '?', ',', '\'', '!', '0', 0 },
   { ' ', '1', 0 },
-  { 'A', 'B', 'C', 'a', 'b', 'c', '2', 0 },
-  { 'D', 'E', 'F', 'd', 'e', 'f', '3', 0 },
-  { 'G', 'H', 'I', 'g', 'h', 'i', '4', 0 },
-  { 'J', 'K', 'L', 'j', 'k', 'l', '5', 0 },
-  { 'M', 'N', 'O', 'm', 'n', 'o', '6', 0 },
-  { 'P', 'Q', 'R', 'S', 'p', 'q', 'r', 's', '7', 0 },
-  { 'T', 'U', 'V', 't', 'u', 'v', '8', 0 },
-  { 'W', 'X', 'Y', 'Z', 'w', 'x', 'y', 'z', '9', 0 },
+  { 'A', 'B', 'C', '2', 0 },
+  { 'D', 'E', 'F', '3', 0 },
+  { 'G', 'H', 'I', '4', 0 },
+  { 'J', 'K', 'L', '5', 0 },
+  { 'M', 'N', 'O', '6', 0 },
+  { 'P', 'Q', 'R', 'S', '7', 0 },
+  { 'T', 'U', 'V', '8', 0 },
+  { 'W', 'X', 'Y', 'Z', '9', 0 },
 };
+
+char lowercase[10][10] = { 
+  { '.', '?', ',', '\'', '!', '0', 0 },
+  { ' ', '1', 0 },
+  { 'a', 'b', 'c', '2', 0 },
+  { 'd', 'e', 'f', '3', 0 },
+  { 'g', 'h', 'i', '4', 0 },
+  { 'j', 'k', 'l', '5', 0 },
+  { 'm', 'n', 'o', '6', 0 },
+  { 'p', 'q', 'r', 's', '7', 0 },
+  { 't', 'u', 'v', '8', 0 },
+  { 'w', 'x', 'y', 'z', '9', 0 },
+};
+
+char (*letters)[10];
 
 char lastKey;
 int lastKeyIndex;
 unsigned long lastKeyPressTime;
+boolean shiftNextKey;
 
 int hour, minute;
 enum SetTimeField { HOUR, TENS, ONES };
@@ -671,12 +687,32 @@ void textInput(char key, char *buf, int len)
     screen.setTextColor(BLACK);
   }
   screen.println();
+  
   if (key >= '0' && key <= '9') {
     if (millis() - lastKeyPressTime > 1000 || key - '0' != lastKey) {
       // append new letter
       lastKeyIndex = 0;
       lastKey = key - '0';
       int i = strlen(buf);
+      
+      if (i == 0) letters = uppercase;
+      else {
+        letters = lowercase;
+        for (int j = i - 1; j >= 0; j--) {
+          if (buf[j] == '.' || buf[j] == '?' || buf[j] == '!') {
+            letters = uppercase;
+            break;
+          } else if (buf[j] != ' ') break;
+        }
+      }
+      
+      if (shiftNextKey) {
+        if (letters == uppercase) letters = lowercase;
+        else letters = uppercase;
+        
+        shiftNextKey = false;
+      }
+      
       if (i < len - 1) { buf[i] = letters[lastKey][lastKeyIndex]; buf[i + 1] = 0; }
     } else {
       // cycle previously entered letter
@@ -691,7 +727,9 @@ void textInput(char key, char *buf, int len)
     int i = strlen(buf);
     if (i > 0) { buf[i - 1] = 0; }
     lastKeyPressTime = 0;
+    shiftNextKey = false;
   }
+  if (key == '#') shiftNextKey = true;
 }
 
 void softKeys(char *left)
