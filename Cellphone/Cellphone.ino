@@ -4,6 +4,7 @@
 
 #include <PhoneBook.h>
 #include <GSM3ClockService.h>
+#include <GSM3VolumeService.h>
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
@@ -14,6 +15,7 @@ GSM gsmAccess(true);
 GSMVoiceCall vcs(false);
 GSM_SMS sms(false);
 GSM3ClockService clock;
+GSM3VolumeService volume;
 PhoneBook pb;
 
 unsigned long lastClockCheckTime, lastSMSCheckTime;
@@ -550,6 +552,13 @@ void loop() {
       screen.print(number);
       softKeys("end");
       
+      if (key == 'U' || key == 'D') {
+        volume.checkVolume();
+        if (checkForCommandReady(volume, 500) && volume.ready() == 1) {
+          volume.setVolume(constrain(volume.getVolume() + (key == 'U' ? 5 : -5), 0, 100));
+        }
+      }
+      
       if (key == 'L') {
         vcs.hangCall();
         while (!vcs.ready());
@@ -558,6 +567,17 @@ void loop() {
   }
   
   prevVoiceCallStatus = voiceCallStatus;
+}
+
+boolean checkForCommandReady(GSM3ShieldV1BaseProvider &provider, int timeout)
+{
+  unsigned long commandStartTime = millis();
+  
+  while (millis() - commandStartTime < timeout) {
+    if (provider.ready()) return true;
+  }
+  
+  return false;
 }
 
 void initEditEntryFromPhoneBookEntry()
