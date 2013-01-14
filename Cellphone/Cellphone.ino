@@ -18,6 +18,8 @@ GSM3ClockService clock;
 GSM3VolumeService volume;
 PhoneBook pb;
 
+const int contrast = 30;
+
 unsigned long lastClockCheckTime, lastSMSCheckTime;
 
 Adafruit_PCD8544 screen = Adafruit_PCD8544(16, 15, 14, 12, 13); // SCLK, DIN, D/C, CS, RST 
@@ -151,7 +153,7 @@ void setup() {
   digitalWrite(17, HIGH);
   
   screen.begin();
-  screen.setContrast(35);
+  screen.setContrast(contrast);
   screen.clearDisplay();
   screen.setCursor(0,0);
   screen.display();
@@ -297,7 +299,7 @@ void loop() {
           blank = false;
         } else {
           if (key) {
-            screen.begin(35);
+            screen.begin(contrast);
             unlocking = true;
             lastKeyPressTime = millis();
           }
