@@ -44,6 +44,7 @@ int pwrkey = 2;
 int x = 0, y = 0;
 
 char number[20];
+char name[20];
 
 int missed = 0;
 
@@ -93,6 +94,8 @@ int phoneBookIndexEnd; // exclusive
 int phoneBookLine;
 int phoneBookPage;
 int phoneBookFirstPageOffset;
+
+long phoneBookCache[256];
 
 #define PHONEBOOKENTRY() ((phoneBookPage == 0) ? phoneBookLine - phoneBookFirstPageOffset : phoneBookLine)
 
@@ -170,7 +173,31 @@ void setup() {
   
   vcs.hangCall();
   
-  delay(300);  
+  delay(300);
+  
+  pb.selectPhoneBook(PHONEBOOK_SIM);
+  while (!pb.ready());
+  //delay(300);
+  
+  screen.println("caching...");
+  screen.display();
+  
+  pb.queryPhoneBook();
+  while (!pb.ready());
+  int n = pb.getPhoneBookSize();
+  for (int i = 1; i <= n && i < sizeof(phoneBookCache) / sizeof(phoneBookCache[0]); i++) {
+    pb.readPhoneBookEntry(i);
+    while (!pb.ready());
+    if (pb.gotNumber) {
+      phoneBookCache[i] = hashPhoneNumber(pb.number);
+//      Serial.print(pb.number);
+//      Serial.print(":");
+//      Serial.println(phoneBookCache[i]);
+    }
+  }
+  
+  screen.println("done.");
+  screen.display();
 }
 
 void loop() {
@@ -237,7 +264,8 @@ void loop() {
         screen.print("Missed: ");
         screen.println(missed);
         screen.println("Last from: ");
-        screen.print(number);
+        screen.println(number);
+        screen.println(name);
         softKeys("close", "call");
         
         if (key == 'L') {
@@ -344,7 +372,10 @@ void loop() {
           if (mode == MISSEDCALLS) pb.selectPhoneBook(PHONEBOOK_MISSEDCALLS);
           if (mode == RECEIVEDCALLS) pb.selectPhoneBook(PHONEBOOK_RECEIVEDCALLS);
           if (mode == DIALEDCALLS) pb.selectPhoneBook(PHONEBOOK_DIALEDCALLS);
-          delay(300);
+          while (!pb.ready());
+          delay(300); // otherwise the module gives an error on pb.queryPhoneBook()
+          pb.queryPhoneBook();
+          while (!pb.ready());
           phoneBookSize = pb.getPhoneBookSize();
           phoneBookPage = 0;
           phoneBookLine = 0;
@@ -530,6 +561,8 @@ void loop() {
       break;
       
     case CALLING:
+      name[0] = 0; // otherwise previous value will be shown once connected
+
       screen.println("Calling:");
       screen.print(number);
       softKeys("end");
@@ -541,12 +574,20 @@ void loop() {
       break;
       
     case RECEIVINGCALL:
-      blank = false;
-      vcs.retrieveCallingNumber(number, sizeof(number));
+      if (prevVoiceCallStatus != RECEIVINGCALL) {
+        blank = false;
+        missed++;
+        name[0] = 0;
+        number[0] = 0;
+      }
+      if (strlen(number) == 0) vcs.retrieveCallingNumber(number, sizeof(number));
+      if (strlen(number) > 0 && name[0] == 0) {
+        phoneNumberToName(number, name, sizeof(name) / sizeof(name[0]));
+      }
       screen.println("incoming:");
-      screen.print(number);
+      screen.println(number);
+      screen.println(name);
       softKeys("end", "answer");
-      if (prevVoiceCallStatus != RECEIVINGCALL) missed++;
       if (key == 'L') {
         missed--;
         vcs.hangCall();
@@ -561,7 +602,8 @@ void loop() {
       
     case TALKING:
       screen.println("Connected:");
-      screen.print(number);
+      screen.println(number);
+      screen.println(name);
       softKeys("end");
       
       if (key == 'U' || key == 'D') {
@@ -640,6 +682,55 @@ boolean savePhoneBookEntry(int index, char *name, char *number) {
   while (!pb.ready());
   
   return true;
+}
+
+long hashPhoneNumber(char *s)
+{
+  long l = 0;
+  while (*s) {
+    if ((*s) >= '0' && (*s) <= '9') l = l * 10 + (*s) - '0';
+    s++;
+  }
+  return l;
+}
+
+// return true on success, false on failure.
+boolean phoneNumberToName(char *number, char *name, int namelen)
+{
+  long l = hashPhoneNumber(number);
+  
+  for (int i = 1; i < 256; i++) {
+    if (l == phoneBookCache[i]) {
+      boolean success = false;
+      int type;
+      
+      pb.queryPhoneBook();
+      while (!pb.ready());
+      type = pb.getPhoneBookType();
+      
+      if (type != PHONEBOOK_SIM) {
+        pb.selectPhoneBook(PHONEBOOK_SIM);
+        while (!pb.ready());
+        delay(300);
+      }
+      
+      pb.readPhoneBookEntry(i);
+      if (checkForCommandReady(pb, 500) && pb.gotNumber) {
+        strncpy(name, pb.name, namelen);
+        name[namelen - 1] = 0;
+        success = true;
+      }
+      
+      if (type != PHONEBOOK_SIM) {
+        pb.selectPhoneBook(type);
+        while (!pb.ready());
+      }
+      
+      return success;
+    }
+  }
+  
+  return false;
 }
 
 int loadphoneBookNamesForwards(int startingIndex, int n)

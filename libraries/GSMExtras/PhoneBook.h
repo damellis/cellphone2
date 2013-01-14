@@ -24,8 +24,9 @@ class PhoneBook : public GSM3ShieldV1BaseProvider
     // Returns 0 if last command is still executing
     // 1 if success
     // >1 if error 
-    int ready(){return GSM3ShieldV1BaseProvider::ready();};
+    //int ready(){return GSM3ShieldV1BaseProvider::ready();};
     
+    void queryPhoneBook();
     int getPhoneBookType();
     int getPhoneBookSize();
     int getPhoneBookUsed();
@@ -41,7 +42,6 @@ class PhoneBook : public GSM3ShieldV1BaseProvider
     char number[20];
     char name[20];
   private:
-    void queryPhoneBook();
     void queryPhoneBookContinue();
     void selectPhoneBookContinue();
     void writePhoneBookContinue();

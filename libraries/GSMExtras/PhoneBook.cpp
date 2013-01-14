@@ -22,7 +22,7 @@ void PhoneBook::selectPhoneBook(int type)
   phoneBookType = type;
   theGSM3ShieldV1ModemCore.openCommand(this,(GSM3_commandType_e)SELECTPHONEBOOK);
   selectPhoneBookContinue();
-  while (!ready());
+  //while (!ready());
 }
 
 void PhoneBook::selectPhoneBookContinue()
@@ -47,19 +47,19 @@ void PhoneBook::selectPhoneBookContinue()
 
 int PhoneBook::getPhoneBookType()
 {
-  queryPhoneBook();
+  //queryPhoneBook();
   return phoneBookType;
 }
 
 int PhoneBook::getPhoneBookSize()
 {
-  queryPhoneBook();
+  //queryPhoneBook();
   return phoneBookSize;
 }
 
 int PhoneBook::getPhoneBookUsed()
 {
-  queryPhoneBook();
+  //queryPhoneBook();
   return phoneBookUsed;
 }
 
@@ -67,7 +67,7 @@ void PhoneBook::queryPhoneBook()
 {
   theGSM3ShieldV1ModemCore.openCommand(this,(GSM3_commandType_e)QUERYPHONEBOOK);
   queryPhoneBookContinue();
-  while (!ready());
+  //while (!ready());
 }
 
 void PhoneBook::queryPhoneBookContinue()
