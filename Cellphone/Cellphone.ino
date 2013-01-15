@@ -18,7 +18,7 @@ GSM3ClockService clock;
 GSM3VolumeService volume;
 PhoneBook pb;
 
-const int contrast = 30;
+const int contrast = 35;
 
 unsigned long lastClockCheckTime, lastSMSCheckTime;
 
