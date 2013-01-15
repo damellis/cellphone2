@@ -46,6 +46,8 @@ int x = 0, y = 0;
 char number[20];
 char name[20];
 
+#define NAME_OR_NUMBER() (name[0] == 0 ? number : name)
+
 int missed = 0;
 
 GSM3_voiceCall_st prevVoiceCallStatus;
@@ -264,8 +266,7 @@ void loop() {
         screen.print("Missed: ");
         screen.println(missed);
         screen.println("Last from: ");
-        screen.println(number);
-        screen.println(name);
+        screen.println(NAME_OR_NUMBER());
         softKeys("close", "call");
         
         if (key == 'L') {
@@ -281,6 +282,7 @@ void loop() {
       } else if (mode == TEXTALERT) {
         if (initmode) {
           sms.remoteNumber(number, sizeof(number));
+          name[0] = 0;
           int i = 0;
           for (; i < sizeof(text) - 1; i++) {
             int c = sms.read();
@@ -292,7 +294,9 @@ void loop() {
           sms.flush(); // XXX: should save to read message store, not delete
         }
         
-        screen.print(number);
+        phoneNumberToName(number, name, sizeof(name) / sizeof(name[0]));
+        
+        screen.print(NAME_OR_NUMBER());
         screen.println(":");
         
         for (int i = textline * 14; i < textline * 14 + 56; i++) {
@@ -585,8 +589,7 @@ void loop() {
         phoneNumberToName(number, name, sizeof(name) / sizeof(name[0]));
       }
       screen.println("incoming:");
-      screen.println(number);
-      screen.println(name);
+      screen.println(NAME_OR_NUMBER());
       softKeys("end", "answer");
       if (key == 'L') {
         missed--;
@@ -602,8 +605,7 @@ void loop() {
       
     case TALKING:
       screen.println("Connected:");
-      screen.println(number);
-      screen.println(name);
+      screen.println(NAME_OR_NUMBER());
       softKeys("end");
       
       if (key == 'U' || key == 'D') {
