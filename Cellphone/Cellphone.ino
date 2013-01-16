@@ -78,7 +78,7 @@ menuentry_t phoneBookEntryMenu[] = {
 
 menuentry_t callLogEntryMenu[] = {
   { "Call", MISSEDCALLS, callPhoneBookEntry },
-  { "Delete", MISSEDCALLS, deletePhoneBookEntry }
+  { "Delete", MISSEDCALLS, deleteCallLogEntry }
 };
 
 menuentry_t *menu;
@@ -177,26 +177,10 @@ void setup() {
   
   delay(300);
   
-  pb.selectPhoneBook(PHONEBOOK_SIM);
-  while (!pb.ready());
-  //delay(300);
-  
   screen.println("caching...");
   screen.display();
   
-  pb.queryPhoneBook();
-  while (!pb.ready());
-  int n = pb.getPhoneBookSize();
-  for (int i = 1; i <= n && i < sizeof(phoneBookCache) / sizeof(phoneBookCache[0]); i++) {
-    pb.readPhoneBookEntry(i);
-    while (!pb.ready());
-    if (pb.gotNumber) {
-      phoneBookCache[i] = hashPhoneNumber(pb.number);
-//      Serial.print(pb.number);
-//      Serial.print(":");
-//      Serial.println(phoneBookCache[i]);
-    }
-  }
+  cachePhoneBook();
   
   screen.println("done.");
   screen.display();
@@ -666,6 +650,11 @@ void callPhoneBookEntry() {
 
 void deletePhoneBookEntry() {
   pb.deletePhoneBookEntry(phoneBookIndices[PHONEBOOKENTRY()]);
+  phoneBookCache[phoneBookIndices[PHONEBOOKENTRY()]] = 0;
+}
+
+void deleteCallLogEntry() {
+  pb.deletePhoneBookEntry(phoneBookIndices[PHONEBOOKENTRY()]);
 }
 
 boolean savePhoneBookEntry(int index, char *name, char *number) {
@@ -679,11 +668,48 @@ boolean savePhoneBookEntry(int index, char *name, char *number) {
 //    
 //    if (index == 256) return false;
 //  }
-  if (index == 0) pb.addPhoneBookEntry(number, name);
-  else pb.writePhoneBookEntry(index, number, name);
-  while (!pb.ready());
+  if (index == 0) {
+    pb.addPhoneBookEntry(number, name);
+    while (!pb.ready());
+    if (pb.ready() == 1) cachePhoneBook();
+  } else {
+    pb.writePhoneBookEntry(index, number, name);
+    while (!pb.ready());
+    if (pb.ready() == 1) phoneBookCache[index] = hashPhoneNumber(number);
+  }
   
   return true;
+}
+
+void cachePhoneBook()
+{
+  int type;
+  
+  pb.queryPhoneBook();
+  while (!pb.ready());
+  type = pb.getPhoneBookType();
+  
+  if (type != PHONEBOOK_SIM) {
+    pb.selectPhoneBook(PHONEBOOK_SIM);
+    while (!pb.ready());
+    delay(300);
+    pb.queryPhoneBook();
+    while (!pb.ready());
+  }
+      
+  int n = pb.getPhoneBookSize();
+  for (int i = 1; i <= n && i < sizeof(phoneBookCache) / sizeof(phoneBookCache[0]); i++) {
+    pb.readPhoneBookEntry(i);
+    while (!pb.ready());
+    if (pb.gotNumber) {
+      phoneBookCache[i] = hashPhoneNumber(pb.number);
+    }
+  }
+  
+  if (type != PHONEBOOK_SIM) {
+    pb.selectPhoneBook(type);
+    while (!pb.ready());
+  }
 }
 
 long hashPhoneNumber(char *s)
