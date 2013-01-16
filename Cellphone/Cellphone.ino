@@ -294,7 +294,7 @@ void loop() {
           sms.flush(); // XXX: should save to read message store, not delete
         }
         
-        phoneNumberToName(number, name, sizeof(name) / sizeof(name[0]));
+        if (name[0] == 0) phoneNumberToName(number, name, sizeof(name) / sizeof(name[0]));
         
         screen.print(NAME_OR_NUMBER());
         screen.println(":");
