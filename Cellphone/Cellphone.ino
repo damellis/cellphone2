@@ -98,6 +98,7 @@ int phoneBookPage;
 int phoneBookFirstPageOffset;
 
 long phoneBookCache[256];
+int phoneBookCacheSize;
 
 #define PHONEBOOKENTRY() ((phoneBookPage == 0) ? phoneBookLine - phoneBookFirstPageOffset : phoneBookLine)
 
@@ -657,21 +658,24 @@ void deleteCallLogEntry() {
   pb.deletePhoneBookEntry(phoneBookIndices[PHONEBOOKENTRY()]);
 }
 
+// assumes we're already in the main phone book
 boolean savePhoneBookEntry(int index, char *name, char *number) {
-//  // new entry; find available index
-//  if (index == 0) {
-//    for (index = 1; index < 256; index++) {
-//      pb.readPhoneBookEntry(index);
-//      while (!pb.ready());
-//      if (!pb.gotNumber) break;
-//    }
-//    
-//    if (index == 256) return false;
-//  }
   if (index == 0) {
-    pb.addPhoneBookEntry(number, name);
-    while (!pb.ready());
-    if (pb.ready() == 1) cachePhoneBook();
+    // search for an possible empty phone book entry by looking for a cached hash of 0
+    for (int i = 0; i < phoneBookCacheSize; i++) {
+      if (!phoneBookCache[i]) {
+        pb.readPhoneBookEntry(i);
+        while (!pb.ready());
+        
+        // if the entry is really empty, save the new entry there
+        if (!pb.gotNumber) {
+          pb.writePhoneBookEntry(i, number, name);
+          while (!pb.ready());
+          phoneBookCache[i] = hashPhoneNumber(number);
+          break;
+        }
+      }
+    }
   } else {
     pb.writePhoneBookEntry(index, number, name);
     while (!pb.ready());
@@ -696,9 +700,10 @@ void cachePhoneBook()
     pb.queryPhoneBook();
     while (!pb.ready());
   }
-      
-  int n = pb.getPhoneBookSize();
-  for (int i = 1; i <= n && i < sizeof(phoneBookCache) / sizeof(phoneBookCache[0]); i++) {
+  
+  // the phone book entries start at 1, so the size of the cache is one more than the size of the phone book.  
+  phoneBookCacheSize = min(pb.getPhoneBookSize() + 1, sizeof(phoneBookCache) / sizeof(phoneBookCache[0]));
+  for (int i = 1; i < phoneBookCacheSize; i++) {
     pb.readPhoneBookEntry(i);
     while (!pb.ready());
     if (pb.gotNumber) {
