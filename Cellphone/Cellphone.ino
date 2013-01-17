@@ -715,10 +715,15 @@ void cachePhoneBook()
 long hashPhoneNumber(char *s)
 {
   long l = 0;
-  if (*s == '1') s++; // U.S.-centric hack
-  while (*s) {
-    if ((*s) >= '0' && (*s) <= '9') l = l * 10 + (*s) - '0';
-    s++;
+  boolean firstDigit = true;
+  for (; *s; s++) {
+    if ((*s) >= '0' && (*s) <= '9') {
+      if (firstDigit) {
+        firstDigit = false;
+        if (*s == '1') continue; // skip U.S. country code
+      }
+      l = l * 10 + (*s) - '0';
+    }
   }
   return l;
 }
