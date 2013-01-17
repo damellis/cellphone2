@@ -351,6 +351,7 @@ void loop() {
         } else if (key == 'R') {
           if (strlen(number) > 0) {
             mode = HOME; // for after call ends
+            name[0] = 0;
             vcs.voiceCall(number);
             while (!vcs.ready());
           }
@@ -550,10 +551,10 @@ void loop() {
       break;
       
     case CALLING:
-      name[0] = 0; // otherwise previous value will be shown once connected
-
+      //if (name[0] == 0) phoneNumberToName(number, name, sizeof(name) / sizeof(name[0]));
+      
       screen.println("Calling:");
-      screen.print(number);
+      screen.print(NAME_OR_NUMBER());
       softKeys("end");
       
       if (key == 'L') {
@@ -647,6 +648,7 @@ void callPhoneBookEntry() {
   vcs.voiceCall(phoneBookNumbers[PHONEBOOKENTRY()]);
   while (!vcs.ready());
   strcpy(number, phoneBookNumbers[PHONEBOOKENTRY()]);
+  strcpy(name, phoneBookNames[PHONEBOOKENTRY()]);
 }
 
 void deletePhoneBookEntry() {
