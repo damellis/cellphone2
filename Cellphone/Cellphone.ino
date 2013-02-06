@@ -18,7 +18,7 @@ GSM3ClockService clock;
 GSM3VolumeService volume;
 PhoneBook pb;
 
-const int contrast = 35;
+int contrast = 35;
 
 unsigned long lastClockCheckTime, lastSMSCheckTime;
 
@@ -312,6 +312,8 @@ void loop() {
         if (unlocking) {
           softKeys("Unlock");
           if (key == 'L') { mode = HOME; unlocking = false; }
+          if (key == 'U') { contrast += 5; screen.begin(contrast); lastKeyPressTime = millis(); }
+          if (key == 'D') { contrast -= 5; screen.begin(contrast); lastKeyPressTime = millis(); }
           if (millis() - lastKeyPressTime > 3000) unlocking = false;
           blank = false;
         } else {
