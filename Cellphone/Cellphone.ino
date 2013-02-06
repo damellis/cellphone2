@@ -454,7 +454,7 @@ void loop() {
         }
         
         if (key == 'L') {
-          mode = PHONEBOOK;
+          mode = backmode;
           back = true;
         }
         if (key == 'R') {
