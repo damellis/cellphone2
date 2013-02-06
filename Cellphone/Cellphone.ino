@@ -78,6 +78,7 @@ menuentry_t phoneBookEntryMenu[] = {
 
 menuentry_t callLogEntryMenu[] = {
   { "Call", MISSEDCALLS, callPhoneBookEntry },
+  { "Save number", EDITENTRY, initEditEntryFromCallLogEntry },
   { "Delete", MISSEDCALLS, deleteCallLogEntry }
 };
 
@@ -624,6 +625,13 @@ boolean checkForCommandReady(GSM3ShieldV1BaseProvider &provider, int timeout)
   return false;
 }
 
+void initEditEntryFromCallLogEntry()
+{
+  entryIndex = 0;
+  strcpy(entryName, phoneBookNames[PHONEBOOKENTRY()]);
+  strcpy(entryNumber, phoneBookNumbers[PHONEBOOKENTRY()]);
+}
+
 void initEditEntryFromPhoneBookEntry()
 {
   entryIndex = phoneBookIndices[PHONEBOOKENTRY()];
@@ -662,8 +670,10 @@ void deleteCallLogEntry() {
   pb.deletePhoneBookEntry(phoneBookIndices[PHONEBOOKENTRY()]);
 }
 
-// assumes we're already in the main phone book
 boolean savePhoneBookEntry(int index, char *name, char *number) {
+  pb.selectPhoneBook(PHONEBOOK_SIM);
+  while (!pb.ready());
+  delay(300); // otherwise the module may give an error when accessing the phonebook.
   if (index == 0) {
     // search for an possible empty phone book entry by looking for a cached hash of 0
     for (int i = 0; i < phoneBookCacheSize; i++) {
