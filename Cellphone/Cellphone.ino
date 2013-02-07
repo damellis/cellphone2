@@ -72,6 +72,7 @@ menuentry_t mainmenu[] = {
 menuentry_t phoneBookEntryMenu[] = {
   { "Call", PHONEBOOK, callPhoneBookEntry },
   { "Text", EDITTEXT, initTextFromPhoneBookEntry },
+  { "Add entry", EDITENTRY, initEditEntry },
   { "Edit", EDITENTRY, initEditEntryFromPhoneBookEntry },
   { "Delete", PHONEBOOK, deletePhoneBookEntry }
 };
@@ -96,12 +97,9 @@ int phoneBookIndexStart; // inclusive
 int phoneBookIndexEnd; // exclusive
 int phoneBookLine;
 int phoneBookPage;
-int phoneBookFirstPageOffset;
 
 long phoneBookCache[256];
 int phoneBookCacheSize;
-
-#define PHONEBOOKENTRY() ((phoneBookPage == 0) ? phoneBookLine - phoneBookFirstPageOffset : phoneBookLine)
 
 int entryIndex;
 char entryName[15], entryNumber[15];
@@ -373,18 +371,11 @@ void loop() {
           phoneBookPage = 0;
           phoneBookLine = 0;
           phoneBookIndexStart = 1;
-          if (mode == PHONEBOOK) phoneBookFirstPageOffset = 1;
-          else phoneBookFirstPageOffset = 0;
-          phoneBookIndexEnd = loadphoneBookNamesForwards(phoneBookIndexStart, NUMPHONEBOOKLINES - phoneBookFirstPageOffset);
+          phoneBookIndexEnd = loadphoneBookNamesForwards(phoneBookIndexStart, NUMPHONEBOOKLINES);
         }
 
-        if (mode == PHONEBOOK && phoneBookPage == 0) {
-          if (phoneBookLine == 0) screen.setTextColor(WHITE, BLACK);
-          else screen.setTextColor(BLACK);
-          screen.println("Add entry.");
-        }
-        for (int i = 0; i < NUMPHONEBOOKLINES - (phoneBookPage == 0 ? phoneBookFirstPageOffset : 0); i++) {
-          if (i == phoneBookLine - (phoneBookPage == 0 ? phoneBookFirstPageOffset : 0)) screen.setTextColor(WHITE, BLACK);
+        for (int i = 0; i < NUMPHONEBOOKLINES; i++) {
+          if (i == phoneBookLine) screen.setTextColor(WHITE, BLACK);
           else screen.setTextColor(BLACK);
           if (strlen(phoneBookNames[i]) == 0) {
             screen.print(phoneBookNumbers[i]);
@@ -398,20 +389,15 @@ void loop() {
         
         if (key == 'L') mode = HOME;
         else if (key == 'R') {
-          if (mode == PHONEBOOK && phoneBookPage == 0 && phoneBookLine == 0) {
-            entryIndex = 0; entryName[0] = 0; entryNumber[0] = 0;
-            mode = EDITENTRY;
+          backmode = mode;
+          if (mode == PHONEBOOK) {
+            mode = MENU;
+            menu = phoneBookEntryMenu;
+            menuLength = sizeof(phoneBookEntryMenu) / sizeof(phoneBookEntryMenu[0]);
           } else {
-            backmode = mode;
-            if (mode == PHONEBOOK) {
-              mode = MENU;
-              menu = phoneBookEntryMenu;
-              menuLength = sizeof(phoneBookEntryMenu) / sizeof(phoneBookEntryMenu[0]);
-            } else {
-              mode = MENU;
-              menu = callLogEntryMenu;
-              menuLength = sizeof(callLogEntryMenu) / sizeof(callLogEntryMenu[0]);
-            }
+            mode = MENU;
+            menu = callLogEntryMenu;
+            menuLength = sizeof(callLogEntryMenu) / sizeof(callLogEntryMenu[0]);
           }
         } else if (key == 'D') {
           phoneBookLine++;
@@ -427,7 +413,7 @@ void loop() {
             if (phoneBookLine == -1) {
               phoneBookPage--;
               phoneBookIndexEnd = phoneBookIndexStart;
-              phoneBookIndexStart = loadphoneBookNamesBackwards(phoneBookIndexEnd, NUMPHONEBOOKLINES - (phoneBookPage == 0 ? phoneBookFirstPageOffset : 0));
+              phoneBookIndexStart = loadphoneBookNamesBackwards(phoneBookIndexEnd, NUMPHONEBOOKLINES);
               phoneBookLine = NUMPHONEBOOKLINES - 1;
             }
           }
@@ -625,22 +611,29 @@ boolean checkForCommandReady(GSM3ShieldV1BaseProvider &provider, int timeout)
   return false;
 }
 
+void initEditEntry()
+{
+  entryIndex = 0;
+  entryName[0] = 0;
+  entryNumber[0] = 0;
+}
+
 void initEditEntryFromCallLogEntry()
 {
   entryIndex = 0;
-  strcpy(entryName, phoneBookNames[PHONEBOOKENTRY()]);
-  strcpy(entryNumber, phoneBookNumbers[PHONEBOOKENTRY()]);
+  strcpy(entryName, phoneBookNames[phoneBookLine]);
+  strcpy(entryNumber, phoneBookNumbers[phoneBookLine]);
 }
 
 void initEditEntryFromPhoneBookEntry()
 {
-  entryIndex = phoneBookIndices[PHONEBOOKENTRY()];
-  strcpy(entryName, phoneBookNames[PHONEBOOKENTRY()]);
-  strcpy(entryNumber, phoneBookNumbers[PHONEBOOKENTRY()]);
+  entryIndex = phoneBookIndices[phoneBookLine];
+  strcpy(entryName, phoneBookNames[phoneBookLine]);
+  strcpy(entryNumber, phoneBookNumbers[phoneBookLine]);
 }
 
 void initTextFromPhoneBookEntry() {
-  strcpy(number, phoneBookNumbers[PHONEBOOKENTRY()]);
+  strcpy(number, phoneBookNumbers[phoneBookLine]);
   text[0] = 0;
   fromalert = false;
 }
@@ -655,19 +648,19 @@ void sendText(char *number, char *text)
 }
 
 void callPhoneBookEntry() {
-  vcs.voiceCall(phoneBookNumbers[PHONEBOOKENTRY()]);
+  vcs.voiceCall(phoneBookNumbers[phoneBookLine]);
   while (!vcs.ready());
-  strcpy(number, phoneBookNumbers[PHONEBOOKENTRY()]);
-  strcpy(name, phoneBookNames[PHONEBOOKENTRY()]);
+  strcpy(number, phoneBookNumbers[phoneBookLine]);
+  strcpy(name, phoneBookNames[phoneBookLine]);
 }
 
 void deletePhoneBookEntry() {
-  pb.deletePhoneBookEntry(phoneBookIndices[PHONEBOOKENTRY()]);
-  phoneBookCache[phoneBookIndices[PHONEBOOKENTRY()]] = 0;
+  pb.deletePhoneBookEntry(phoneBookIndices[phoneBookLine]);
+  phoneBookCache[phoneBookIndices[phoneBookLine]] = 0;
 }
 
 void deleteCallLogEntry() {
-  pb.deletePhoneBookEntry(phoneBookIndices[PHONEBOOKENTRY()]);
+  pb.deletePhoneBookEntry(phoneBookIndices[phoneBookLine]);
 }
 
 boolean savePhoneBookEntry(int index, char *name, char *number) {
