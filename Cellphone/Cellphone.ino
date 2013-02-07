@@ -669,7 +669,7 @@ boolean savePhoneBookEntry(int index, char *name, char *number) {
   delay(300); // otherwise the module may give an error when accessing the phonebook.
   if (index == 0) {
     // search for an possible empty phone book entry by looking for a cached hash of 0
-    for (int i = 0; i < phoneBookCacheSize; i++) {
+    for (int i = 1; i < phoneBookCacheSize; i++) {
       if (!phoneBookCache[i]) {
         pb.readPhoneBookEntry(i);
         while (!pb.ready());
@@ -770,6 +770,7 @@ boolean phoneNumberToName(char *number, char *name, int namelen)
       if (type != PHONEBOOK_SIM) {
         pb.selectPhoneBook(type);
         while (!pb.ready());
+        delay(300);
       }
       
       return success;
@@ -791,6 +792,7 @@ int loadphoneBookNamesForwards(int startingIndex, int n)
       phoneBookNames[i][14] = 0;
       strncpy(phoneBookNumbers[i], pb.number, 15);
       phoneBookNumbers[i][14] = 0;
+      if (pb.getPhoneBookType() != PHONEBOOK_SIM) phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], 15);
       if (++i == n) break; // found four entries
     }
   }
@@ -814,6 +816,7 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
       phoneBookNames[i][14] = 0;
       strncpy(phoneBookNumbers[i], pb.number, 15);
       phoneBookNumbers[i][14] = 0;
+      if (pb.getPhoneBookType() != PHONEBOOK_SIM) phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], 15);
       if (--i == -1) break; // found four entries
     }
   }
