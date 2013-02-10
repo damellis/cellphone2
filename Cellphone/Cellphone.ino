@@ -5,6 +5,7 @@
 #include <PhoneBook.h>
 #include <GSM3ClockService.h>
 #include <GSM3VolumeService.h>
+#include <GSM3DTMF.h>
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
@@ -16,6 +17,7 @@ GSMVoiceCall vcs(false);
 GSM_SMS sms(false);
 GSM3ClockService clock;
 GSM3VolumeService volume;
+GSM3DTMF dtmf;
 PhoneBook pb;
 
 int contrast = 35;
@@ -582,6 +584,8 @@ void loop() {
       screen.println("Connected:");
       screen.println(NAME_OR_NUMBER());
       softKeys("end");
+      
+      if ((key >= '0' && key <= '9') || key == '#' || key == '*') dtmf.tone(key);
       
       if (key == 'U' || key == 'D') {
         volume.checkVolume();
