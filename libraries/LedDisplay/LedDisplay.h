@@ -72,6 +72,9 @@ class LedDisplay : public Print {
 	void home();						// set cursor to far left hand position
 	void setCursor(int whichPosition);	// set cursor to any position
 	int  getCursor();					// get the cursor position
+	
+	void flip() { flipped = true; }
+	void noFlip() { flipped = false; }
 
 #if ARDUINO >= 100
 	virtual size_t write(uint8_t b);	// write a character to the display and advance cursor
@@ -98,7 +101,7 @@ class LedDisplay : public Print {
   	// Character display setters:
 	void writeCharacter(char whatCharacter, byte whatPosition);	// write a character to a buffer which will
 																// be sent to the display by loadDotRegister()
-
+	uint8_t flipped;
   	int cursorPos;				// position of the cursor		
 //   	uint8_t dotRegister[40];    // the 320-bit dot register for a single 8 digit LED display
 // 	uint8_t dotRegister[80];    // the pair of 320-bit dot register for two 8 character LED displays
