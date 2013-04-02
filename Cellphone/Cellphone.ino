@@ -169,7 +169,16 @@ void setup() {
   
   screen.println("connecting...");
   screen.display();
-  while (gsmAccess.begin() != GSM_READY) {
+  
+  // restart the GSM module.
+  // the library will attempt to start the module using pin 7, which is SCK
+  // (and not connected to anything except the ISP header)
+  pinMode(19, OUTPUT);
+  digitalWrite(19, LOW);
+  delay(12000);
+  digitalWrite(19, HIGH);
+  
+  while (gsmAccess.begin(0, false) != GSM_READY) {
     delay(1000);
   }
   screen.println("connected.");
