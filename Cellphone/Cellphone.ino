@@ -7,8 +7,7 @@
 #include <GSM3VolumeService.h>
 #include <GSM3DTMF.h>
 
-#include <Adafruit_GFX.h>
-#include <Adafruit_PCD8544.h>
+#include <LedDisplay.h>
 
 #include <Keypad.h>
 
@@ -20,11 +19,12 @@ GSM3VolumeService volume;
 GSM3DTMF dtmf;
 PhoneBook pb;
 
-int contrast = 35;
+int brightness = 15;
 
 unsigned long lastClockCheckTime, lastSMSCheckTime;
 
-Adafruit_PCD8544 screen = Adafruit_PCD8544(16, 15, 14, 12, 13); // SCLK, DIN, D/C, CS, RST 
+// _dataPin, _registerSelect, _clockPin, _chipEnable, _resetPin,  _displayLength
+LedDisplay screen = LedDisplay(22, 21, 20, 18, 19, 8);
 
 const byte ROWS = 6;
 const byte COLS = 3;
@@ -160,15 +160,12 @@ void setup() {
   digitalWrite(17, HIGH);
   
   screen.begin();
-  screen.setContrast(contrast);
-  screen.clearDisplay();
-  screen.setCursor(0,0);
-  screen.display();
+  screen.clear();
+  screen.setCursor(0);
   
   delay(2000);
   
   screen.println("connecting...");
-  screen.display();
   
   // restart the GSM module.
   // the library will attempt to start the module using pin 7, which is SCK
@@ -182,36 +179,31 @@ void setup() {
     delay(1000);
   }
   screen.println("connected.");
-  screen.display();
   
   vcs.hangCall();
   
   delay(300);
   
   screen.println("caching...");
-  screen.display();
   
   cachePhoneBook();
   
   screen.println("done.");
-  screen.display();
 }
 
 void loop() {
-  if (vcs.getvoiceCallStatus() == IDLE_CALL && mode == LOCKED) digitalWrite(17, LOW);
-  else digitalWrite(17, HIGH);
+//  if (vcs.getvoiceCallStatus() == IDLE_CALL && mode == LOCKED) digitalWrite(17, LOW);
+//  else digitalWrite(17, HIGH);
   
   char key = keypad.getKey();
-  screen.clearDisplay();
-  screen.setCursor(0, 0);
+  screen.clear();
+  screen.setCursor(0);
 
   if (millis() - lastClockCheckTime > 60000) {
     clock.checkTime();
     while (!clock.ready());
     lastClockCheckTime = millis();
   }
-  
-  screen.setTextColor(BLACK);
   
   GSM3_voiceCall_st voiceCallStatus = vcs.getvoiceCallStatus();
   switch (voiceCallStatus) {
@@ -236,7 +228,6 @@ void loop() {
       prevmode = mode;
       
       if (mode == HOME || (mode == LOCKED && unlocking)) {
-        screen.setTextColor(WHITE, BLACK);
         screen.print(clock.getMonth());
         screen.print("/");
         screen.print(clock.getDay());
@@ -253,8 +244,6 @@ void loop() {
         screen.print(":");
         if (clock.getMinute() < 10) screen.print('0');
         screen.print(clock.getMinute());
-        
-        screen.setTextColor(BLACK);
       }
       
       if (mode == MISSEDCALLALERT) {
@@ -322,19 +311,19 @@ void loop() {
         if (unlocking) {
           softKeys("Unlock");
           if (key == 'L') { mode = HOME; unlocking = false; }
-          if (key == 'U') { contrast += 5; screen.begin(contrast); lastKeyPressTime = millis(); }
-          if (key == 'D') { contrast -= 5; screen.begin(contrast); lastKeyPressTime = millis(); }
+          if (key == 'U') { brightness += 1; screen.setBrightness(brightness); lastKeyPressTime = millis(); }
+          if (key == 'D') { brightness -= 1; screen.setBrightness(brightness); lastKeyPressTime = millis(); }
           if (millis() - lastKeyPressTime > 3000) unlocking = false;
           blank = false;
         } else {
           if (key) {
-            screen.begin(contrast);
+            screen.setBrightness(brightness);
             unlocking = true;
             lastKeyPressTime = millis();
           }
           
           if (!blank) {
-            screen.display(); // since there's no call to softKeys()
+            screen.setBrightness(0);
             blank = true;
           }
         }
@@ -386,8 +375,6 @@ void loop() {
         }
 
         for (int i = 0; i < NUMPHONEBOOKLINES; i++) {
-          if (i == phoneBookLine) screen.setTextColor(WHITE, BLACK);
-          else screen.setTextColor(BLACK);
           if (strlen(phoneBookNames[i]) == 0) {
             screen.print(phoneBookNumbers[i]);
             if (strlen(phoneBookNumbers[i]) < 14) screen.println();
@@ -475,8 +462,6 @@ void loop() {
         if (initmode) menuLine = 0;
 
         for (int i = 0; i < menuLength; i++) {
-          if (menuLine == i) screen.setTextColor(WHITE, BLACK);
-          else screen.setTextColor(BLACK);
           screen.print(menu[i].name);
           if (strlen(menu[i].name) % 14 != 0) screen.println();
         }
@@ -513,9 +498,7 @@ void loop() {
         screen.println("Date & Time:");
         
         for (int i = 0; i < 7; i++) {
-          if (i == setTimeField) screen.setTextColor(WHITE, BLACK);
           screen.print(setTimeValues[i]);
-          screen.setTextColor(BLACK);
           screen.print(setTimeSeparators[i]);
         } 
         
@@ -844,9 +827,7 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
 void numberInput(char key, char *buf, int len)
 {
   screen.print(buf);
-  screen.setTextColor(WHITE, BLACK);
   screen.print(" ");
-  screen.setTextColor(BLACK);
   
   if (key >= '0' && key <= '9') {
     int i = strlen(buf);
@@ -862,14 +843,10 @@ void textInput(char key, char *buf, int len)
 {
   if (millis() - lastKeyPressTime > 1000) {
     screen.print(buf);
-    screen.setTextColor(WHITE, BLACK);
     screen.print(" ");
-    screen.setTextColor(BLACK);
   } else {
     for (int i = 0; i < strlen(buf) - 1; i++) screen.print(buf[i]);
-    screen.setTextColor(WHITE, BLACK);
     screen.print(buf[strlen(buf) - 1]);
-    screen.setTextColor(BLACK);
   }
   screen.println();
   
@@ -924,13 +901,9 @@ void softKeys(char *left)
 
 void softKeys(char *left, char *right)
 {
-  screen.setCursor(0, 40);
-  screen.setTextColor(WHITE, BLACK);
-  screen.print(left);
-  screen.setTextColor(BLACK);
-  for (int i = 0; i < 14 - strlen(left) - strlen(right); i++) screen.print(" ");
-  screen.setTextColor(WHITE, BLACK);
-  screen.print(right);
-  screen.display();
+//  screen.setCursor(0);
+//  screen.print(left);
+//  for (int i = 0; i < 8 - strlen(left) - strlen(right); i++) screen.print(" ");
+//  screen.print(right);
 }
 
