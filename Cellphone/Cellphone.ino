@@ -90,7 +90,7 @@ menuentry_t *menu;
 int menuLength;
 int menuLine;
 
-const int NUMPHONEBOOKLINES = 5;
+const int NUMPHONEBOOKLINES = 1;
 int phoneBookIndices[NUMPHONEBOOKLINES];
 char phoneBookNames[NUMPHONEBOOKLINES][15];
 char phoneBookNumbers[NUMPHONEBOOKLINES][15];
@@ -466,12 +466,9 @@ void loop() {
         }
       } else if (mode == MENU) {
         if (initmode) menuLine = 0;
-
-        for (int i = 0; i < menuLength; i++) {
-          screen.print(menu[i].name);
-          if (strlen(menu[i].name) % 14 != 0) screen.println();
-        }
         
+        screen.print(menu[menuLine].name);
+
         softKeys("back", "okay");
         
         if (key == 'U') {
