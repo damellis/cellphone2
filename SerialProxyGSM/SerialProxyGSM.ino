@@ -8,6 +8,14 @@ void setup()
   Serial.begin(9600);
   Serial.print("Initializing GSM module...");
   
+  // restart the GSM module.
+  // the library will attempt to start the module using pin 7, which is SCK
+  // (and not connected to anything except the ISP header)
+  pinMode(19, OUTPUT);
+  digitalWrite(19, LOW);
+  delay(12000);
+  digitalWrite(19, HIGH);
+
   // try to initialize the GSM module, retrying on failure
   while (gsm.begin() != GSM_READY) {
     Serial.print(".");

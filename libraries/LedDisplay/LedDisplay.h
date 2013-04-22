@@ -103,9 +103,9 @@ class LedDisplay : public Print {
 																// be sent to the display by loadDotRegister()
 	uint8_t flipped;
   	int cursorPos;				// position of the cursor		
-//   	uint8_t dotRegister[40];    // the 320-bit dot register for a single 8 digit LED display
+   	uint8_t dotRegister[40];    // the 320-bit dot register for a single 8 digit LED display
 // 	uint8_t dotRegister[80];    // the pair of 320-bit dot register for two 8 character LED displays
-   	uint8_t dotRegister[160];    // four 320-bit dot registers. 320 for each 8 character LED display 
+//   	uint8_t dotRegister[160];    // four 320-bit dot registers. 320 for each 8 character LED display
 
 	// Define pins for the LED display:
 	uint8_t  dataPin;         	// connects to the display's data in

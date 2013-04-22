@@ -24,7 +24,7 @@ int brightness = 15;
 unsigned long lastClockCheckTime, lastSMSCheckTime;
 
 // _dataPin, _registerSelect, _clockPin, _chipEnable, _resetPin,  _displayLength
-LedDisplay screen = LedDisplay(22, 21, 20, 18, 19, 8);
+LedDisplay screen = LedDisplay(22, 21, 20, 18, 17, 8);
 
 const byte ROWS = 6;
 const byte COLS = 3;
@@ -55,7 +55,7 @@ int missed = 0;
 GSM3_voiceCall_st prevVoiceCallStatus;
 
 enum Mode { NOMODE, TEXTALERT, MISSEDCALLALERT, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, RECEIVEDCALLS, DIALEDCALLS, TEXTS, SETTIME };
-Mode mode = LOCKED, prevmode, backmode = mode, interruptedmode = mode;
+Mode mode = HOME, prevmode, backmode = mode, interruptedmode = mode;
 boolean initmode, back, fromalert;
 
 struct menuentry_t {
@@ -155,17 +155,20 @@ boolean unlocking, blank;
 void setup() {
   Serial.begin(9600);
 
-  // turn on display  
-  pinMode(17, OUTPUT);
-  digitalWrite(17, HIGH);
+//  // turn on display  
+//  pinMode(17, OUTPUT);
+//  digitalWrite(17, HIGH);
   
   screen.begin();
+  screen.flip();
   screen.clear();
   screen.setCursor(0);
   
   delay(2000);
   
-  screen.println("connecting...");
+  screen.print("connect");
+  
+  delay(2000);
   
   // restart the GSM module.
   // the library will attempt to start the module using pin 7, which is SCK
@@ -178,17 +181,20 @@ void setup() {
   while (gsmAccess.begin(0, false) != GSM_READY) {
     delay(1000);
   }
-  screen.println("connected.");
+  screen.setCursor(0);
+  screen.print("connected.");
   
   vcs.hangCall();
   
   delay(300);
   
-  screen.println("caching...");
+  screen.setCursor(0);
+  screen.print("caching.");
   
   cachePhoneBook();
   
-  screen.println("done.");
+  screen.setCursor(0);
+  screen.print("done.");
 }
 
 void loop() {
@@ -198,7 +204,7 @@ void loop() {
   char key = keypad.getKey();
   screen.clear();
   screen.setCursor(0);
-
+  
   if (millis() - lastClockCheckTime > 60000) {
     clock.checkTime();
     while (!clock.ready());
@@ -228,17 +234,17 @@ void loop() {
       prevmode = mode;
       
       if (mode == HOME || (mode == LOCKED && unlocking)) {
-        screen.print(clock.getMonth());
-        screen.print("/");
-        screen.print(clock.getDay());
-        screen.print("/");
-        if (clock.getYear() < 10) screen.print('0');
-        screen.print(clock.getYear());
-
-        screen.print(" ");
-        if (clock.getMonth() < 10) screen.print(' ');
-        if (clock.getDay() < 10) screen.print(' ');
-        if (clock.getHour() < 10) screen.print(' ');
+//        screen.print(clock.getMonth());
+//        screen.print("/");
+//        screen.print(clock.getDay());
+//        screen.print("/");
+//        if (clock.getYear() < 10) screen.print('0');
+//        screen.print(clock.getYear());
+//
+//        screen.print(" ");
+//        if (clock.getMonth() < 10) screen.print(' ');
+//        if (clock.getDay() < 10) screen.print(' ');
+//        if (clock.getHour() < 10) screen.print(' ');
         
         screen.print(clock.getHour());
         screen.print(":");
