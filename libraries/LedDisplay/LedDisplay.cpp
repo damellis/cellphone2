@@ -283,7 +283,7 @@ void LedDisplay::loadDotRegister() {
   digitalWrite(chipEnable, LOW);
   // shift the data out:
   for (int i = 0; i < maxData; i++) {
-    shiftOut(dataPin, clockPin, flipped ? LSBFIRST : MSBFIRST, dotRegister[flipped ? (maxData - 1 - i) : i]);
+    shiftOut(dataPin, clockPin, flipped ? LSBFIRST : MSBFIRST, dotRegister[flipped ? (maxData - 1 - i) : i] << (flipped ? 1 : 0));
   }
   // disable writing:
   digitalWrite(chipEnable, HIGH);
