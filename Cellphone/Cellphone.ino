@@ -202,7 +202,7 @@ void loop() {
 //  else digitalWrite(17, HIGH);
   
   char key = keypad.getKey();
-  screen.clear();
+  //screen.clear();
   screen.setCursor(0);
   
   if (millis() - lastClockCheckTime > 60000) {
@@ -383,10 +383,8 @@ void loop() {
         for (int i = 0; i < NUMPHONEBOOKLINES; i++) {
           if (strlen(phoneBookNames[i]) == 0) {
             screen.print(phoneBookNumbers[i]);
-            if (strlen(phoneBookNumbers[i]) < 14) screen.println();
           } else {
             screen.print(phoneBookNames[i]);
-            if (strlen(phoneBookNames[i]) < 14) screen.println();
           }
         }
         softKeys("back", "okay");
@@ -425,11 +423,9 @@ void loop() {
       } else if (mode == EDITENTRY) {
         if (initmode) entryField = NAME;
         
-        screen.println("Name:");
         if (entryField != NAME) screen.println(entryName);
         else textInput(key, entryName, sizeof(entryName));
         
-        screen.println("Number:");
         if (entryField != NUMBER) screen.println(entryNumber);
         else numberInput(key, entryNumber, sizeof(entryNumber));
                 
@@ -538,8 +534,7 @@ void loop() {
       
     case CALLING:
       //if (name[0] == 0) phoneNumberToName(number, name, sizeof(name) / sizeof(name[0]));
-      
-      screen.println("Calling:");
+
       screen.print(NAME_OR_NUMBER());
       softKeys("end");
       
@@ -560,8 +555,7 @@ void loop() {
       if (strlen(number) > 0 && name[0] == 0) {
         phoneNumberToName(number, name, sizeof(name) / sizeof(name[0]));
       }
-      screen.println("incoming:");
-      screen.println(NAME_OR_NUMBER());
+      screen.print(NAME_OR_NUMBER());
       softKeys("end", "answer");
       if (key == 'L') {
         missed--;
@@ -576,8 +570,7 @@ void loop() {
       break;
       
     case TALKING:
-      screen.println("Connected:");
-      screen.println(NAME_OR_NUMBER());
+      screen.print(NAME_OR_NUMBER());
       softKeys("end");
       
       if ((key >= '0' && key <= '9') || key == '#' || key == '*') dtmf.tone(key);
@@ -596,6 +589,7 @@ void loop() {
       break;
   }
   
+  screen.print("        "); // blank the rest of the line
   prevVoiceCallStatus = voiceCallStatus;
 }
 
