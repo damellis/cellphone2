@@ -150,7 +150,10 @@ int setTimeMin[7] = {  1,  1, 0, 0,  1, 0, 0 };
 int setTimeMax[7] = { 12, 31, 9, 9, 24, 9, 9 };
 char *setTimeSeparators[7] = { "/", "/", "", " ", ":", "", "" };
 
-boolean unlocking, blank;
+unsigned long lastScrollTime = 0;
+const long scrollSpeed = 200;
+
+boolean unlocking, blank, scrolling;
 
 void setup() {
   Serial.begin(9600);
@@ -167,6 +170,7 @@ void setup() {
   delay(2000);
   
   screen.print("connect");
+  screen.display();
   
   delay(2000);
   
@@ -183,6 +187,7 @@ void setup() {
   }
   screen.setCursor(0);
   screen.print("connected.");
+  screen.display();
   
   vcs.hangCall();
   
@@ -190,16 +195,20 @@ void setup() {
   
   screen.setCursor(0);
   screen.print("caching.");
+  screen.display();
   
   cachePhoneBook();
   
   screen.setCursor(0);
   screen.print("done.");
+  screen.display();
 }
 
 void loop() {
-//  if (vcs.getvoiceCallStatus() == IDLE_CALL && mode == LOCKED) digitalWrite(17, LOW);
-//  else digitalWrite(17, HIGH);
+//  if (vcs.getvoiceCallStatus() == IDLE_CALL && mode == LOCKED) screen.setBrightness(0);
+//  else screen.setBrightness(brightness);
+
+  scrolling = true;
   
   char key = keypad.getKey();
   //screen.clear();
@@ -287,7 +296,7 @@ void loop() {
         if (name[0] == 0) phoneNumberToName(number, name, sizeof(name) / sizeof(name[0]));
         
         screen.print(NAME_OR_NUMBER());
-        screen.println(":");
+        screen.print(": ");
         
         for (int i = textline * 14; i < textline * 14 + 56; i++) {
           if (!text[i]) break;
@@ -544,6 +553,7 @@ void loop() {
     case RECEIVINGCALL:
       if (prevVoiceCallStatus != RECEIVINGCALL) {
         blank = false;
+        screen.setBrightness(brightness);
         missed++;
         name[0] = 0;
         number[0] = 0;
@@ -586,7 +596,12 @@ void loop() {
       break;
   }
   
-  screen.print("        "); // blank the rest of the line
+  if (scrolling && millis() - lastScrollTime > scrollSpeed) {
+    screen.scroll();
+    lastScrollTime = millis();
+  }
+  
+  screen.display(); // blank the rest of the line
   prevVoiceCallStatus = voiceCallStatus;
 }
 
@@ -820,8 +835,10 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
 
 void numberInput(char key, char *buf, int len)
 {
+  scrolling = false;
+  
   screen.print((strlen(buf) < 7) ? buf : (buf + strlen(buf) - 7));
-  screen.print(" "); // TODO: needs to be inverted
+  screen.underline(); screen.print(" "); screen.noUnderline();
   
   if (key >= '0' && key <= '9') {
     int i = strlen(buf);
@@ -835,12 +852,14 @@ void numberInput(char key, char *buf, int len)
 
 void textInput(char key, char *buf, int len)
 {
+  scrolling = false;
+  
   if (millis() - lastKeyPressTime > 1000) {
     screen.print((strlen(buf) < 7) ? buf : (buf + strlen(buf) - 7));
-    screen.print(" "); // TODO: needs to be inverted
+    screen.underline(); screen.print(" "); screen.noUnderline();
   } else {
     for (int i = (strlen(buf) < 8) ? 0 : (strlen(buf) - 8); i < strlen(buf) - 1; i++) screen.print(buf[i]);
-    screen.print(buf[strlen(buf) - 1]); // TODO: needs to be inverted
+    screen.underline(); screen.print(buf[strlen(buf) - 1]); screen.noUnderline();
   }
   
   if (key >= '0' && key <= '9') {
