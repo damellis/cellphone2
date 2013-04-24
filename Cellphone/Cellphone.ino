@@ -423,11 +423,8 @@ void loop() {
       } else if (mode == EDITENTRY) {
         if (initmode) entryField = NAME;
         
-        if (entryField != NAME) screen.println(entryName);
-        else textInput(key, entryName, sizeof(entryName));
-        
-        if (entryField != NUMBER) screen.println(entryNumber);
-        else numberInput(key, entryNumber, sizeof(entryNumber));
+        if (entryField == NAME) textInput(key, entryName, sizeof(entryName));
+        if (entryField == NUMBER) numberInput(key, entryNumber, sizeof(entryNumber));
                 
         softKeys("cancel", "save");
 
@@ -823,8 +820,8 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
 
 void numberInput(char key, char *buf, int len)
 {
-  screen.print(buf);
-  screen.print(" ");
+  screen.print((strlen(buf) < 7) ? buf : (buf + strlen(buf) - 7));
+  screen.print(" "); // TODO: needs to be inverted
   
   if (key >= '0' && key <= '9') {
     int i = strlen(buf);
@@ -839,13 +836,12 @@ void numberInput(char key, char *buf, int len)
 void textInput(char key, char *buf, int len)
 {
   if (millis() - lastKeyPressTime > 1000) {
-    screen.print(buf);
-    screen.print(" ");
+    screen.print((strlen(buf) < 7) ? buf : (buf + strlen(buf) - 7));
+    screen.print(" "); // TODO: needs to be inverted
   } else {
-    for (int i = 0; i < strlen(buf) - 1; i++) screen.print(buf[i]);
-    screen.print(buf[strlen(buf) - 1]);
+    for (int i = (strlen(buf) < 8) ? 0 : (strlen(buf) - 8); i < strlen(buf) - 1; i++) screen.print(buf[i]);
+    screen.print(buf[strlen(buf) - 1]); // TODO: needs to be inverted
   }
-  screen.println();
   
   if (key >= '0' && key <= '9') {
     if (millis() - lastKeyPressTime > 1000 || key - '0' != lastKey) {
