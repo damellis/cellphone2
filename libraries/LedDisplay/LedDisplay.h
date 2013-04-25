@@ -75,14 +75,14 @@ class LedDisplay : public Print {
 	void setCursor(int whichPosition);	// set cursor to any position
 	int  getCursor();					// get the cursor position
 	
+	void showCursor() { cursorVisible = true; }
+	void hideCursor() { cursorVisible = false; }
+	
 	void scroll();
 	
 	void flip() { flipped = true; }
 	void noFlip() { flipped = false; }
 	
-	void underline() { underlined = true; }
-	void noUnderline() { underlined = false; }
-
 #if ARDUINO >= 100
 	virtual size_t write(uint8_t b);	// write a character to the display and advance cursor
 #else
@@ -91,6 +91,7 @@ class LedDisplay : public Print {
 	using Print::write;
 	
 	void display();
+	void terminate();
 	
 //	void setString(char* _stringToDisplay);		// set the displayString variable
 //	char* getString();							// get the displayString
@@ -106,9 +107,10 @@ class LedDisplay : public Print {
 	  
   private:
   	// Character display setters:
-	void writeCharacter(char whatCharacter, byte whatPosition, uint8_t inverted = false);	// write a character to a buffer which will
+	void writeCharacter(char whatCharacter, byte whatPosition, uint8_t underlined = false);	// write a character to a buffer which will
 																// be sent to the display by loadDotRegister()
-	uint8_t flipped, underlined;
+	uint8_t flipped;
+	uint8_t cursorVisible;
   	int cursorPos; // location within displayString to which write() stores the next character
 	int scrollPos; // location within displayString of the left-most character drawn to the display
 	int scrollDir;

@@ -153,7 +153,7 @@ char *setTimeSeparators[7] = { "/", "/", "", " ", ":", "", "" };
 unsigned long lastScrollTime = 0;
 const long scrollSpeed = 200;
 
-boolean unlocking, blank, scrolling;
+boolean unlocking, blank, scrolling, backupCursor;
 
 void setup() {
   Serial.begin(9600);
@@ -213,6 +213,8 @@ void loop() {
   char key = keypad.getKey();
   //screen.clear();
   screen.setCursor(0);
+  screen.hideCursor();
+  backupCursor = false;
   
   if (millis() - lastClockCheckTime > 60000) {
     clock.checkTime();
@@ -601,6 +603,8 @@ void loop() {
     lastScrollTime = millis();
   }
   
+  screen.terminate();
+  if (backupCursor) screen.setCursor(screen.getCursor() - 1);
   screen.display(); // blank the rest of the line
   prevVoiceCallStatus = voiceCallStatus;
 }
@@ -836,9 +840,9 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
 void numberInput(char key, char *buf, int len)
 {
   scrolling = false;
+  screen.showCursor();
   
   screen.print((strlen(buf) < 7) ? buf : (buf + strlen(buf) - 7));
-  screen.underline(); screen.print(" "); screen.noUnderline();
   
   if (key >= '0' && key <= '9') {
     int i = strlen(buf);
@@ -853,13 +857,13 @@ void numberInput(char key, char *buf, int len)
 void textInput(char key, char *buf, int len)
 {
   scrolling = false;
+  screen.showCursor();
   
   if (millis() - lastKeyPressTime > 1000) {
     screen.print((strlen(buf) < 7) ? buf : (buf + strlen(buf) - 7));
-    screen.underline(); screen.print(" "); screen.noUnderline();
   } else {
-    for (int i = (strlen(buf) < 8) ? 0 : (strlen(buf) - 8); i < strlen(buf) - 1; i++) screen.print(buf[i]);
-    screen.underline(); screen.print(buf[strlen(buf) - 1]); screen.noUnderline();
+    for (int i = (strlen(buf) < 8) ? 0 : (strlen(buf) - 8); i < strlen(buf); i++) screen.print(buf[i]);
+    backupCursor = true;
   }
   
   if (key >= '0' && key <= '9') {

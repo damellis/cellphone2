@@ -54,7 +54,7 @@ LedDisplay::LedDisplay(uint8_t _dataPin,
 	this->scrollPos = 0;
 	this->scrollDir = 1;
 	this->flipped = false;
-	this->underlined = false;
+	this->cursorVisible = false;
 	
 	displayString[0] = '\0';
 }
@@ -160,12 +160,15 @@ void LedDisplay::write(uint8_t b) {
 #endif
 }
 
-void LedDisplay::display() {
+void LedDisplay::terminate() {
 	displayString[cursorPos] = 0; // XXX: should this be a separate function?
+}
 	
+void LedDisplay::display() {
 	for (int i = 0; i < 8; i++) {
-		if (scrollPos + i < strlen(displayString)) writeCharacter(displayString[scrollPos + i], i);
-		else writeCharacter(' ', i);
+		boolean underline = cursorVisible && (scrollPos + i == cursorPos);
+		if (scrollPos + i < strlen(displayString)) writeCharacter(displayString[scrollPos + i], i, underline);
+		else writeCharacter(' ', i, underline);
 	}
 	
 	loadDotRegister();
