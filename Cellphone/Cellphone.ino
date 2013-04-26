@@ -298,11 +298,12 @@ void loop() {
         
         screen.print(NAME_OR_NUMBER());
         screen.print(": ");
+        screen.print(text);
         
-        for (int i = textline * 14; i < textline * 14 + 56; i++) {
-          if (!text[i]) break;
-          screen.print(text[i]);
-        }
+//        for (int i = textline * 14; i < textline * 14 + 56; i++) {
+//          if (!text[i]) break;
+//          screen.print(text[i]);
+//        }
         
         softKeys("close", "reply");
         
@@ -312,12 +313,12 @@ void loop() {
           mode = EDITTEXT;
           fromalert = true;
         }
-        if (key == 'U') {
-          if (textline > 0) textline--;
-        }
-        if (key == 'D') {
-          if (strlen(text) > (textline * 14 + 56)) textline++;
-        }
+//        if (key == 'U') {
+//          if (textline > 0) textline--;
+//        }
+//        if (key == 'D') {
+//          if (strlen(text) > (textline * 14 + 56)) textline++;
+//        }
       } else if (mode == LOCKED) {
         if (initmode) {
           unlocking = false;
