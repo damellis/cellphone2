@@ -153,7 +153,7 @@ char *setTimeSeparators[7] = { "/", "/", "", " ", ":", "", "" };
 unsigned long lastScrollTime = 0;
 const long scrollSpeed = 200;
 
-boolean unlocking, blank, scrolling, backupCursor;
+boolean unlocking, blank, scrolling, terminateScreen;
 
 void setup() {
   Serial.begin(9600);
@@ -214,7 +214,7 @@ void loop() {
   //screen.clear();
   screen.setCursor(0);
   screen.hideCursor();
-  backupCursor = false;
+  terminateScreen = true;
   
   if (millis() - lastClockCheckTime > 60000) {
     clock.checkTime();
@@ -264,10 +264,9 @@ void loop() {
       }
       
       if (mode == MISSEDCALLALERT) {
-        screen.print("Missed: ");
-        screen.println(missed);
-        screen.println("Last from: ");
-        screen.println(NAME_OR_NUMBER());
+        screen.print(NAME_OR_NUMBER());
+        if (missed > 1) screen.print(" + ");
+        screen.print(missed - 1);
         softKeys("close", "call");
         
         if (key == 'L') {
@@ -502,10 +501,11 @@ void loop() {
           setTimeField = 0;
         }
         
-        screen.println("Date & Time:");
-        
-        for (int i = 0; i < 7; i++) {
-          screen.print(setTimeValues[i]);
+        for (int i = (setTimeField < 4 ? 0 : 4); i < (setTimeField < 4 ? 4 : 7); i++) {
+          if (i == setTimeField && millis() % 500 < 250) {
+            screen.print(" ");
+            if (setTimeValues[i] >= 10) screen.print(" ");
+          } else screen.print(setTimeValues[i]);
           screen.print(setTimeSeparators[i]);
         } 
         
@@ -603,8 +603,7 @@ void loop() {
     lastScrollTime = millis();
   }
   
-  screen.terminate();
-  if (backupCursor) screen.setCursor(screen.getCursor() - 1);
+  if (terminateScreen) screen.terminate();
   screen.display(); // blank the rest of the line
   prevVoiceCallStatus = voiceCallStatus;
 }
@@ -863,7 +862,9 @@ void textInput(char key, char *buf, int len)
     screen.print((strlen(buf) < 7) ? buf : (buf + strlen(buf) - 7));
   } else {
     for (int i = (strlen(buf) < 8) ? 0 : (strlen(buf) - 8); i < strlen(buf); i++) screen.print(buf[i]);
-    backupCursor = true;
+    terminateScreen = false;
+    screen.terminate();
+    screen.setCursor(screen.getCursor() - 1);
   }
   
   if (key >= '0' && key <= '9') {
