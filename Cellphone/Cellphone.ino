@@ -20,6 +20,9 @@ GSM3VolumeService volume;
 GSM3DTMF dtmf;
 PhoneBook pb;
 
+#define SCREEN_WIDTH 14
+#define ENTRY_SIZE 20
+
 int contrast = 35;
 
 unsigned long lastClockCheckTime, lastSMSCheckTime;
@@ -92,8 +95,8 @@ int menuLine;
 
 const int NUMPHONEBOOKLINES = 5;
 int phoneBookIndices[NUMPHONEBOOKLINES];
-char phoneBookNames[NUMPHONEBOOKLINES][15];
-char phoneBookNumbers[NUMPHONEBOOKLINES][15];
+char phoneBookNames[NUMPHONEBOOKLINES][ENTRY_SIZE];
+char phoneBookNumbers[NUMPHONEBOOKLINES][ENTRY_SIZE];
 int phoneBookSize;
 int phoneBookIndexStart; // inclusive
 int phoneBookIndexEnd; // exclusive
@@ -104,7 +107,7 @@ long phoneBookCache[256];
 int phoneBookCacheSize;
 
 int entryIndex;
-char entryName[15], entryNumber[15];
+char entryName[ENTRY_SIZE], entryNumber[ENTRY_SIZE];
 enum EntryField { NAME, NUMBER };
 EntryField entryField;
 
@@ -294,7 +297,7 @@ void loop() {
         screen.print(NAME_OR_NUMBER());
         screen.println(":");
         
-        for (int i = textline * 14; i < textline * 14 + 56; i++) {
+        for (int i = textline * SCREEN_WIDTH; i < textline * SCREEN_WIDTH + 56; i++) {
           if (!text[i]) break;
           screen.print(text[i]);
         }
@@ -311,7 +314,7 @@ void loop() {
           if (textline > 0) textline--;
         }
         if (key == 'D') {
-          if (strlen(text) > (textline * 14 + 56)) textline++;
+          if (strlen(text) > (textline * SCREEN_WIDTH + 56)) textline++;
         }
       } else if (mode == LOCKED) {
         if (initmode) {
@@ -390,10 +393,10 @@ void loop() {
           else screen.setTextColor(BLACK);
           if (strlen(phoneBookNames[i]) == 0) {
             screen.print(phoneBookNumbers[i]);
-            if (strlen(phoneBookNumbers[i]) < 14) screen.println();
+            if (strlen(phoneBookNumbers[i]) < SCREEN_WIDTH) screen.println();
           } else {
             screen.print(phoneBookNames[i]);
-            if (strlen(phoneBookNames[i]) < 14) screen.println();
+            if (strlen(phoneBookNames[i]) < SCREEN_WIDTH) screen.println();
           }
         }
         softKeys("back", "okay");
@@ -478,7 +481,7 @@ void loop() {
           if (menuLine == i) screen.setTextColor(WHITE, BLACK);
           else screen.setTextColor(BLACK);
           screen.print(menu[i].name);
-          if (strlen(menu[i].name) % 14 != 0) screen.println();
+          if (strlen(menu[i].name) % SCREEN_WIDTH != 0) screen.println();
         }
         
         softKeys("back", "okay");
@@ -801,11 +804,11 @@ int loadphoneBookNamesForwards(int startingIndex, int n)
     while (!pb.ready());
     if (pb.gotNumber) {
       phoneBookIndices[i] = startingIndex;
-      strncpy(phoneBookNames[i], pb.name, 15);
-      phoneBookNames[i][14] = 0;
-      strncpy(phoneBookNumbers[i], pb.number, 15);
-      phoneBookNumbers[i][14] = 0;
-      if (pb.getPhoneBookType() != PHONEBOOK_SIM) phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], 15);
+      strncpy(phoneBookNames[i], pb.name, ENTRY_SIZE);
+      phoneBookNames[i][ENTRY_SIZE - 1] = 0;
+      strncpy(phoneBookNumbers[i], pb.number, ENTRY_SIZE);
+      phoneBookNumbers[i][ENTRY_SIZE - 1] = 0;
+      if (pb.getPhoneBookType() != PHONEBOOK_SIM) phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE);
       if (++i == n) break; // found four entries
     }
   }
@@ -825,11 +828,11 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
     while (!pb.ready());
     if (pb.gotNumber) {
       phoneBookIndices[i] = endingIndex;
-      strncpy(phoneBookNames[i], pb.name, 15);
-      phoneBookNames[i][14] = 0;
-      strncpy(phoneBookNumbers[i], pb.number, 15);
-      phoneBookNumbers[i][14] = 0;
-      if (pb.getPhoneBookType() != PHONEBOOK_SIM) phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], 15);
+      strncpy(phoneBookNames[i], pb.name, ENTRY_SIZE);
+      phoneBookNames[i][ENTRY_SIZE - 1] = 0;
+      strncpy(phoneBookNumbers[i], pb.number, ENTRY_SIZE);
+      phoneBookNumbers[i][ENTRY_SIZE - 1] = 0;
+      if (pb.getPhoneBookType() != PHONEBOOK_SIM) phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE);
       if (--i == -1) break; // found four entries
     }
   }
@@ -928,7 +931,7 @@ void softKeys(char *left, char *right)
   screen.setTextColor(WHITE, BLACK);
   screen.print(left);
   screen.setTextColor(BLACK);
-  for (int i = 0; i < 14 - strlen(left) - strlen(right); i++) screen.print(" ");
+  for (int i = 0; i < SCREEN_WIDTH - strlen(left) - strlen(right); i++) screen.print(" ");
   screen.setTextColor(WHITE, BLACK);
   screen.print(right);
   screen.display();
