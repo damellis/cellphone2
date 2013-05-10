@@ -327,14 +327,15 @@ void loop() {
         
         if (unlocking) {
           softKeys("Unlock");
-          if (key == 'L') { mode = HOME; screen.setBrightness(brightness); unlocking = false; }
-//          if (key == 'U') { brightness += 1; screen.setBrightness(brightness / 2); lastKeyPressTime = millis(); }
-//          if (key == 'D') { brightness -= 1; screen.setBrightness(brightness / 2); lastKeyPressTime = millis(); }
+          if (key == 'L') { mode = HOME; unlocking = false; }
+          if (key == 'U') { brightness += 1; } 
+          if (key == 'D') { brightness -= 1; }
+          if (key == 'U' || key == 'D') { brightness = constrain(brightness, 0, 15); screen.setBrightness(brightness); lastKeyPressTime = millis(); }
           if (millis() - lastKeyPressTime > 3000) unlocking = false;
           blank = false;
         } else {
           if (key) {
-            screen.setBrightness(brightness / 2);
+            screen.setBrightness(brightness);
             unlocking = true;
             lastKeyPressTime = millis();
           }
