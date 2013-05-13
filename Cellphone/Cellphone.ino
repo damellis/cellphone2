@@ -55,7 +55,7 @@ int missed = 0;
 GSM3_voiceCall_st prevVoiceCallStatus;
 
 enum Mode { NOMODE, TEXTALERT, MISSEDCALLALERT, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, RECEIVEDCALLS, DIALEDCALLS, TEXTS, SETTIME };
-Mode mode = HOME, prevmode, backmode = mode, interruptedmode = mode;
+Mode mode = LOCKED, prevmode, backmode = mode, interruptedmode = mode;
 boolean initmode, back, fromalert;
 
 struct menuentry_t {
