@@ -21,6 +21,9 @@ PhoneBook pb;
 
 int brightness = 15;
 
+#define SCREEN_WIDTH 8
+#define ENTRY_SIZE 20
+
 unsigned long lastClockCheckTime, lastSMSCheckTime;
 
 // _dataPin, _registerSelect, _clockPin, _chipEnable, _resetPin,  _displayLength
@@ -48,7 +51,7 @@ int x = 0, y = 0;
 char number[20];
 char name[20];
 
-#define NAME_OR_NUMBER() (name[0] == 0 ? number : name)
+#define NAME_OR_NUMBER() (name[0] == 0 ? (number[0] == 0 ? "Unknown" : number) : name)
 
 int missed = 0;
 
@@ -92,8 +95,10 @@ int menuLine;
 
 const int NUMPHONEBOOKLINES = 1;
 int phoneBookIndices[NUMPHONEBOOKLINES];
-char phoneBookNames[NUMPHONEBOOKLINES][15];
-char phoneBookNumbers[NUMPHONEBOOKLINES][15];
+char phoneBookNames[NUMPHONEBOOKLINES][ENTRY_SIZE];
+char phoneBookNumbers[NUMPHONEBOOKLINES][ENTRY_SIZE];
+boolean phoneBookHasDateTime[NUMPHONEBOOKLINES];
+DateTime phoneBookDateTimes[NUMPHONEBOOKLINES];
 int phoneBookSize;
 int phoneBookIndexStart; // inclusive
 int phoneBookIndexEnd; // exclusive
@@ -104,7 +109,7 @@ long phoneBookCache[256];
 int phoneBookCacheSize;
 
 int entryIndex;
-char entryName[15], entryNumber[15];
+char entryName[ENTRY_SIZE], entryNumber[ENTRY_SIZE];
 enum EntryField { NAME, NUMBER };
 EntryField entryField;
 
@@ -300,7 +305,7 @@ void loop() {
         screen.print(": ");
         screen.print(text);
         
-//        for (int i = textline * 14; i < textline * 14 + 56; i++) {
+//        for (int i = textline * SCREEN_WIDTH; i < textline * SCREEN_WIDTH + 56; i++) {
 //          if (!text[i]) break;
 //          screen.print(text[i]);
 //        }
@@ -317,7 +322,7 @@ void loop() {
 //          if (textline > 0) textline--;
 //        }
 //        if (key == 'D') {
-//          if (strlen(text) > (textline * 14 + 56)) textline++;
+//          if (strlen(text) > (textline * SCREEN_WIDTH + 56)) textline++;
 //        }
       } else if (mode == LOCKED) {
         if (initmode) {
@@ -390,13 +395,31 @@ void loop() {
           phoneBookLine = 0;
           phoneBookIndexStart = 1;
           phoneBookIndexEnd = loadphoneBookNamesForwards(phoneBookIndexStart, NUMPHONEBOOKLINES);
+          lastKeyPressTime = millis();
         }
 
         for (int i = 0; i < NUMPHONEBOOKLINES; i++) {
-          if (strlen(phoneBookNames[i]) == 0) {
-            screen.print(phoneBookNumbers[i]);
-          } else {
+          if (phoneBookHasDateTime[i] && i == phoneBookLine && (millis() - lastKeyPressTime) % 2000 > 1000) {
+            screen.print(phoneBookDateTimes[i].hour);
+            screen.print(":");
+            if (phoneBookDateTimes[i].minute < 10) screen.print("0");
+            screen.print(phoneBookDateTimes[i].minute);
+            screen.print(" ");
+            screen.print(phoneBookDateTimes[i].month);
+            screen.print("/");
+            screen.print(phoneBookDateTimes[i].day);
+            screen.print("/");
+            if (phoneBookDateTimes[i].year < 10) screen.print("0");
+            screen.print(phoneBookDateTimes[i].year);
+            screen.println();
+          } else if (strlen(phoneBookNames[i]) > 0) {
             screen.print(phoneBookNames[i]);
+            if (strlen(phoneBookNames[i]) < SCREEN_WIDTH) screen.println();
+          } else if (strlen(phoneBookNumbers[i]) > 0) {
+            screen.print(phoneBookNumbers[i]);
+            if (strlen(phoneBookNumbers[i]) < SCREEN_WIDTH) screen.println();
+          } else if (phoneBookIndices[i] != 0) {
+            screen.println("Unknown");
           }
         }
         softKeys("back", "okay");
@@ -414,12 +437,15 @@ void loop() {
             menuLength = sizeof(callLogEntryMenu) / sizeof(callLogEntryMenu[0]);
           }
         } else if (key == 'D') {
-          phoneBookLine++;
-          if (phoneBookLine == NUMPHONEBOOKLINES) {
-            phoneBookPage++;
-            phoneBookIndexStart = phoneBookIndexEnd;
-            phoneBookIndexEnd = loadphoneBookNamesForwards(phoneBookIndexStart, NUMPHONEBOOKLINES);
-            phoneBookLine = 0;
+          if (phoneBookPage * NUMPHONEBOOKLINES + phoneBookLine + 1 < pb.getPhoneBookUsed()) {
+            phoneBookLine++;
+            if (phoneBookLine == NUMPHONEBOOKLINES) {
+              phoneBookPage++;
+              phoneBookIndexStart = phoneBookIndexEnd;
+              phoneBookIndexEnd = loadphoneBookNamesForwards(phoneBookIndexStart, NUMPHONEBOOKLINES);
+              phoneBookLine = 0;
+            }
+            lastKeyPressTime = millis();
           }
         } else if (key == 'U') {
           if (phoneBookLine > 0 || phoneBookPage > 0) {
@@ -430,6 +456,7 @@ void loop() {
               phoneBookIndexStart = loadphoneBookNamesBackwards(phoneBookIndexEnd, NUMPHONEBOOKLINES);
               phoneBookLine = NUMPHONEBOOKLINES - 1;
             }
+            lastKeyPressTime = millis();
           }
         }
       } else if (mode == EDITENTRY) {
@@ -753,6 +780,8 @@ long hashPhoneNumber(char *s)
 // return true on success, false on failure.
 boolean phoneNumberToName(char *number, char *name, int namelen)
 {
+  if (number[0] == 0) return false;
+  
   long l = hashPhoneNumber(number);
   
   for (int i = 1; i < 256; i++) {
@@ -793,24 +822,36 @@ boolean phoneNumberToName(char *number, char *name, int namelen)
 int loadphoneBookNamesForwards(int startingIndex, int n)
 {
   int i = 0;
-  for (; startingIndex <= phoneBookSize; startingIndex++) {
-    pb.readPhoneBookEntry(startingIndex);
-    while (!pb.ready());
-    if (pb.gotNumber) {
-      phoneBookIndices[i] = startingIndex;
-      strncpy(phoneBookNames[i], pb.name, 15);
-      phoneBookNames[i][14] = 0;
-      strncpy(phoneBookNumbers[i], pb.number, 15);
-      phoneBookNumbers[i][14] = 0;
-      if (pb.getPhoneBookType() != PHONEBOOK_SIM) phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], 15);
-      if (++i == n) break; // found four entries
+  
+  if (pb.getPhoneBookUsed() > 0) {
+    for (; startingIndex <= phoneBookSize; startingIndex++) {
+      pb.readPhoneBookEntry(startingIndex);
+      while (!pb.ready());
+      if (pb.gotNumber) {
+        phoneBookIndices[i] = startingIndex;
+        strncpy(phoneBookNames[i], pb.name, ENTRY_SIZE);
+        phoneBookNames[i][ENTRY_SIZE - 1] = 0;
+        strncpy(phoneBookNumbers[i], pb.number, ENTRY_SIZE);
+        phoneBookNumbers[i][ENTRY_SIZE - 1] = 0;
+        phoneBookHasDateTime[i] = pb.gotTime;
+        if (pb.gotTime) memcpy(&phoneBookDateTimes[i], &pb.datetime, sizeof(DateTime));
+        if (pb.getPhoneBookType() != PHONEBOOK_SIM) {
+          phoneBookNames[i][0] = 0; // the names in the call logs are never accurate (but sometimes present)
+          phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE); // reuses / overwrites pb
+        }
+        if (++i == n) break; // found a full page of entries
+        if (phoneBookPage * NUMPHONEBOOKLINES + i == pb.getPhoneBookUsed()) break; // hit end of the phonebook
+      }
     }
   }
+  
   for (; i < n; i++) {
     phoneBookIndices[i] = 0;
     phoneBookNames[i][0] = 0;
     phoneBookNumbers[i][0] = 0;
+    phoneBookHasDateTime[i] = false;
   }
+  
   return startingIndex + 1;
 }
 
@@ -822,11 +863,16 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
     while (!pb.ready());
     if (pb.gotNumber) {
       phoneBookIndices[i] = endingIndex;
-      strncpy(phoneBookNames[i], pb.name, 15);
-      phoneBookNames[i][14] = 0;
-      strncpy(phoneBookNumbers[i], pb.number, 15);
-      phoneBookNumbers[i][14] = 0;
-      if (pb.getPhoneBookType() != PHONEBOOK_SIM) phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], 15);
+      strncpy(phoneBookNames[i], pb.name, ENTRY_SIZE);
+      phoneBookNames[i][ENTRY_SIZE - 1] = 0;
+      strncpy(phoneBookNumbers[i], pb.number, ENTRY_SIZE);
+      phoneBookNumbers[i][ENTRY_SIZE - 1] = 0;
+      phoneBookHasDateTime[i] = pb.gotTime;
+      if (pb.gotTime) memcpy(&phoneBookDateTimes[i], &pb.datetime, sizeof(DateTime));
+      if (pb.getPhoneBookType() != PHONEBOOK_SIM) {
+        phoneBookNames[i][0] = 0; // the names in the call logs are never accurate (but sometimes present)
+        phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE); // reuses / overwrites pb
+      }
       if (--i == -1) break; // found four entries
     }
   }
@@ -834,6 +880,7 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
     phoneBookIndices[i] = 0;
     phoneBookNames[i][0] = 0;
     phoneBookNumbers[i][0] = 0;
+    phoneBookHasDateTime[i] = false;
   }
   return endingIndex;
 }
@@ -920,9 +967,13 @@ void softKeys(char *left)
 
 void softKeys(char *left, char *right)
 {
-//  screen.setCursor(0);
+//  screen.setCursor(0, 40);
+//  screen.setTextColor(WHITE, BLACK);
 //  screen.print(left);
-//  for (int i = 0; i < 8 - strlen(left) - strlen(right); i++) screen.print(" ");
+//  screen.setTextColor(BLACK);
+//  for (int i = 0; i < SCREEN_WIDTH - strlen(left) - strlen(right); i++) screen.print(" ");
+//  screen.setTextColor(WHITE, BLACK);
 //  screen.print(right);
+//  screen.display();
 }
 
