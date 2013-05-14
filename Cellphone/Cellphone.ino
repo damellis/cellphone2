@@ -583,6 +583,13 @@ void loop() {
       screen.print(NAME_OR_NUMBER());
       softKeys("end");
       
+      if (key == 'U' || key == 'D') {
+        volume.checkVolume();
+        if (checkForCommandReady(volume, 500) && volume.ready() == 1) {
+          volume.setVolume(constrain(volume.getVolume() + (key == 'U' ? 5 : -5), 0, 100));
+        }
+      }
+      
       if (key == 'L') {
         vcs.hangCall();
         while (!vcs.ready());
