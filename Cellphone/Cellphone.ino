@@ -270,8 +270,11 @@ void loop() {
       
       if (mode == MISSEDCALLALERT) {
         screen.print(NAME_OR_NUMBER());
-        if (missed > 1) screen.print(" + ");
-        screen.print(missed - 1);
+        if (missed > 1) {
+          screen.print(" + ");
+          screen.print(missed - 1);
+        }
+        screen.print(" called");
         softKeys("close", "call");
         
         if (key == 'L') {
@@ -570,7 +573,7 @@ void loop() {
       
     case CALLING:
       //if (name[0] == 0) phoneNumberToName(number, name, sizeof(name) / sizeof(name[0]));
-
+      screen.print("Calling: ");
       screen.print(NAME_OR_NUMBER());
       softKeys("end");
       
@@ -607,6 +610,7 @@ void loop() {
       break;
       
     case TALKING:
+      screen.print("Connected: ");
       screen.print(NAME_OR_NUMBER());
       softKeys("end");
       
