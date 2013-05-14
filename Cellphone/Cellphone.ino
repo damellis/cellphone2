@@ -399,7 +399,15 @@ void loop() {
         }
 
         for (int i = 0; i < NUMPHONEBOOKLINES; i++) {
-          if (phoneBookHasDateTime[i] && i == phoneBookLine && (millis() - lastKeyPressTime) % 2000 > 1000) {
+          if (strlen(phoneBookNames[i]) > 0) {
+            screen.print(phoneBookNames[i]);
+          } else if (strlen(phoneBookNumbers[i]) > 0) {
+            screen.print(phoneBookNumbers[i]);
+          } else if (phoneBookIndices[i] != 0) {
+            screen.print("Unknown");
+          }
+          if (phoneBookHasDateTime[i] && i == phoneBookLine) {
+            screen.print(" ");
             screen.print(phoneBookDateTimes[i].hour);
             screen.print(":");
             if (phoneBookDateTimes[i].minute < 10) screen.print("0");
@@ -411,15 +419,6 @@ void loop() {
             screen.print("/");
             if (phoneBookDateTimes[i].year < 10) screen.print("0");
             screen.print(phoneBookDateTimes[i].year);
-            screen.println();
-          } else if (strlen(phoneBookNames[i]) > 0) {
-            screen.print(phoneBookNames[i]);
-            if (strlen(phoneBookNames[i]) < SCREEN_WIDTH) screen.println();
-          } else if (strlen(phoneBookNumbers[i]) > 0) {
-            screen.print(phoneBookNumbers[i]);
-            if (strlen(phoneBookNumbers[i]) < SCREEN_WIDTH) screen.println();
-          } else if (phoneBookIndices[i] != 0) {
-            screen.println("Unknown");
           }
         }
         softKeys("back", "okay");
