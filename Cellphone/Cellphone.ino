@@ -414,12 +414,14 @@ void loop() {
             menuLength = sizeof(callLogEntryMenu) / sizeof(callLogEntryMenu[0]);
           }
         } else if (key == 'D') {
-          phoneBookLine++;
-          if (phoneBookLine == NUMPHONEBOOKLINES) {
-            phoneBookPage++;
-            phoneBookIndexStart = phoneBookIndexEnd;
-            phoneBookIndexEnd = loadphoneBookNamesForwards(phoneBookIndexStart, NUMPHONEBOOKLINES);
-            phoneBookLine = 0;
+          if (phoneBookPage * NUMPHONEBOOKLINES + phoneBookLine + 1 < pb.getPhoneBookUsed()) {
+            phoneBookLine++;
+            if (phoneBookLine == NUMPHONEBOOKLINES) {
+              phoneBookPage++;
+              phoneBookIndexStart = phoneBookIndexEnd;
+              phoneBookIndexEnd = loadphoneBookNamesForwards(phoneBookIndexStart, NUMPHONEBOOKLINES);
+              phoneBookLine = 0;
+            }
           }
         } else if (key == 'U') {
           if (phoneBookLine > 0 || phoneBookPage > 0) {
@@ -799,24 +801,30 @@ boolean phoneNumberToName(char *number, char *name, int namelen)
 int loadphoneBookNamesForwards(int startingIndex, int n)
 {
   int i = 0;
-  for (; startingIndex <= phoneBookSize; startingIndex++) {
-    pb.readPhoneBookEntry(startingIndex);
-    while (!pb.ready());
-    if (pb.gotNumber) {
-      phoneBookIndices[i] = startingIndex;
-      strncpy(phoneBookNames[i], pb.name, ENTRY_SIZE);
-      phoneBookNames[i][ENTRY_SIZE - 1] = 0;
-      strncpy(phoneBookNumbers[i], pb.number, ENTRY_SIZE);
-      phoneBookNumbers[i][ENTRY_SIZE - 1] = 0;
-      if (pb.getPhoneBookType() != PHONEBOOK_SIM) phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE);
-      if (++i == n) break; // found four entries
+  
+  if (pb.getPhoneBookUsed() > 0) {
+    for (; startingIndex <= phoneBookSize; startingIndex++) {
+      pb.readPhoneBookEntry(startingIndex);
+      while (!pb.ready());
+      if (pb.gotNumber) {
+        phoneBookIndices[i] = startingIndex;
+        strncpy(phoneBookNames[i], pb.name, ENTRY_SIZE);
+        phoneBookNames[i][ENTRY_SIZE - 1] = 0;
+        strncpy(phoneBookNumbers[i], pb.number, ENTRY_SIZE);
+        phoneBookNumbers[i][ENTRY_SIZE - 1] = 0;
+        if (pb.getPhoneBookType() != PHONEBOOK_SIM) phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE);
+        if (++i == n) break; // found a full page of entries
+        if (phoneBookPage * NUMPHONEBOOKLINES + i == pb.getPhoneBookUsed()) break; // hit end of the phonebook
+      }
     }
   }
+  
   for (; i < n; i++) {
     phoneBookIndices[i] = 0;
     phoneBookNames[i][0] = 0;
     phoneBookNumbers[i][0] = 0;
   }
+  
   return startingIndex + 1;
 }
 
