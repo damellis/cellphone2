@@ -97,6 +97,8 @@ const int NUMPHONEBOOKLINES = 5;
 int phoneBookIndices[NUMPHONEBOOKLINES];
 char phoneBookNames[NUMPHONEBOOKLINES][ENTRY_SIZE];
 char phoneBookNumbers[NUMPHONEBOOKLINES][ENTRY_SIZE];
+boolean phoneBookHasDateTime[NUMPHONEBOOKLINES];
+DateTime phoneBookDateTimes[NUMPHONEBOOKLINES];
 int phoneBookSize;
 int phoneBookIndexStart; // inclusive
 int phoneBookIndexEnd; // exclusive
@@ -386,12 +388,27 @@ void loop() {
           phoneBookLine = 0;
           phoneBookIndexStart = 1;
           phoneBookIndexEnd = loadphoneBookNamesForwards(phoneBookIndexStart, NUMPHONEBOOKLINES);
+          lastKeyPressTime = millis();
         }
 
         for (int i = 0; i < NUMPHONEBOOKLINES; i++) {
           if (i == phoneBookLine) screen.setTextColor(WHITE, BLACK);
           else screen.setTextColor(BLACK);
-          if (strlen(phoneBookNames[i]) > 0) {
+          
+          if (phoneBookHasDateTime[i] && i == phoneBookLine && (millis() - lastKeyPressTime) % 2000 > 1000) {
+            screen.print(phoneBookDateTimes[i].hour);
+            screen.print(":");
+            if (phoneBookDateTimes[i].minute < 10) screen.print("0");
+            screen.print(phoneBookDateTimes[i].minute);
+            screen.print(" ");
+            screen.print(phoneBookDateTimes[i].month);
+            screen.print("/");
+            screen.print(phoneBookDateTimes[i].day);
+            screen.print("/");
+            if (phoneBookDateTimes[i].year < 10) screen.print("0");
+            screen.print(phoneBookDateTimes[i].year);
+            screen.println();
+          } else if (strlen(phoneBookNames[i]) > 0) {
             screen.print(phoneBookNames[i]);
             if (strlen(phoneBookNames[i]) < SCREEN_WIDTH) screen.println();
           } else if (strlen(phoneBookNumbers[i]) > 0) {
@@ -424,6 +441,7 @@ void loop() {
               phoneBookIndexEnd = loadphoneBookNamesForwards(phoneBookIndexStart, NUMPHONEBOOKLINES);
               phoneBookLine = 0;
             }
+            lastKeyPressTime = millis();
           }
         } else if (key == 'U') {
           if (phoneBookLine > 0 || phoneBookPage > 0) {
@@ -434,6 +452,7 @@ void loop() {
               phoneBookIndexStart = loadphoneBookNamesBackwards(phoneBookIndexEnd, NUMPHONEBOOKLINES);
               phoneBookLine = NUMPHONEBOOKLINES - 1;
             }
+            lastKeyPressTime = millis();
           }
         }
       } else if (mode == EDITENTRY) {
@@ -816,9 +835,11 @@ int loadphoneBookNamesForwards(int startingIndex, int n)
         phoneBookNames[i][ENTRY_SIZE - 1] = 0;
         strncpy(phoneBookNumbers[i], pb.number, ENTRY_SIZE);
         phoneBookNumbers[i][ENTRY_SIZE - 1] = 0;
+        phoneBookHasDateTime[i] = pb.gotTime;
+        if (pb.gotTime) memcpy(&phoneBookDateTimes[i], &pb.datetime, sizeof(DateTime));
         if (pb.getPhoneBookType() != PHONEBOOK_SIM) {
           phoneBookNames[i][0] = 0; // the names in the call logs are never accurate (but sometimes present)
-          phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE);
+          phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE); // reuses / overwrites pb
         }
         if (++i == n) break; // found a full page of entries
         if (phoneBookPage * NUMPHONEBOOKLINES + i == pb.getPhoneBookUsed()) break; // hit end of the phonebook
@@ -830,6 +851,7 @@ int loadphoneBookNamesForwards(int startingIndex, int n)
     phoneBookIndices[i] = 0;
     phoneBookNames[i][0] = 0;
     phoneBookNumbers[i][0] = 0;
+    phoneBookHasDateTime[i] = false;
   }
   
   return startingIndex + 1;
@@ -847,9 +869,11 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
       phoneBookNames[i][ENTRY_SIZE - 1] = 0;
       strncpy(phoneBookNumbers[i], pb.number, ENTRY_SIZE);
       phoneBookNumbers[i][ENTRY_SIZE - 1] = 0;
+      phoneBookHasDateTime[i] = pb.gotTime;
+      if (pb.gotTime) memcpy(&phoneBookDateTimes[i], &pb.datetime, sizeof(DateTime));
       if (pb.getPhoneBookType() != PHONEBOOK_SIM) {
         phoneBookNames[i][0] = 0; // the names in the call logs are never accurate (but sometimes present)
-        phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE);
+        phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE); // reuses / overwrites pb
       }
       if (--i == -1) break; // found four entries
     }
@@ -858,6 +882,7 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
     phoneBookIndices[i] = 0;
     phoneBookNames[i][0] = 0;
     phoneBookNumbers[i][0] = 0;
+    phoneBookHasDateTime[i] = false;
   }
   return endingIndex;
 }

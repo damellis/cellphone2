@@ -5,6 +5,8 @@
 #include <GSM3MobileSMSProvider.h>
 #include <GSM3ShieldV1SMSProvider.h>
 
+#include <DateTime.h>
+
 #define PHONEBOOK_UNKNOWN -1
 #define PHONEBOOK_SIM 0
 #define PHONEBOOK_MISSEDCALLS 1
@@ -40,9 +42,10 @@ class PhoneBook : public GSM3ShieldV1BaseProvider
     void readPhoneBookEntry(int index);
   
     int phoneBookIndex;
-    bool gotNumber;
+    bool gotNumber, gotTime;
     char number[PHONEBOOK_BUFLEN];
     char name[PHONEBOOK_BUFLEN];
+    DateTime datetime;
   private:
     void queryPhoneBookContinue();
     void selectPhoneBookContinue();

@@ -160,7 +160,7 @@ void PhoneBook::writePhoneBookContinue()
 void PhoneBook::readPhoneBookEntry(int index)
 {
   phoneBookIndex = index;
-  gotNumber = false;
+  gotNumber = false; gotTime = false;
   theGSM3ShieldV1ModemCore.openCommand(this,(GSM3_commandType_e)READPHONEBOOK);
   readPhoneBookContinue();
 }
@@ -206,6 +206,24 @@ bool PhoneBook::parseCPBR()
   }
   name[i] = 0;
   
+  if (!theGSM3ShieldV1ModemCore.theBuffer().chopUntil(",", true)) return true;
+  
+  gotTime = true;
+  
+  datetime.year = theGSM3ShieldV1ModemCore.theBuffer().readInt();
+  theGSM3ShieldV1ModemCore.theBuffer().chopUntil("/", false);
+  datetime.month = theGSM3ShieldV1ModemCore.theBuffer().readInt();
+  theGSM3ShieldV1ModemCore.theBuffer().read(); // skip the previous '/'
+  theGSM3ShieldV1ModemCore.theBuffer().chopUntil("/", false);
+  datetime.day = theGSM3ShieldV1ModemCore.theBuffer().readInt();
+  theGSM3ShieldV1ModemCore.theBuffer().chopUntil(",", false);
+  datetime.hour = theGSM3ShieldV1ModemCore.theBuffer().readInt();
+  theGSM3ShieldV1ModemCore.theBuffer().chopUntil(":", false);
+  datetime.minute = theGSM3ShieldV1ModemCore.theBuffer().readInt();
+  theGSM3ShieldV1ModemCore.theBuffer().read(); // skip the previous ':'
+  theGSM3ShieldV1ModemCore.theBuffer().chopUntil(":", false);
+  datetime.second = theGSM3ShieldV1ModemCore.theBuffer().readInt();
+	
   return true;
 }
 
