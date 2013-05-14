@@ -51,7 +51,7 @@ int x = 0, y = 0;
 char number[20];
 char name[20];
 
-#define NAME_OR_NUMBER() (name[0] == 0 ? number : name)
+#define NAME_OR_NUMBER() (name[0] == 0 ? (number[0] == 0 ? "Unknown" : number) : name)
 
 int missed = 0;
 
@@ -391,12 +391,14 @@ void loop() {
         for (int i = 0; i < NUMPHONEBOOKLINES; i++) {
           if (i == phoneBookLine) screen.setTextColor(WHITE, BLACK);
           else screen.setTextColor(BLACK);
-          if (strlen(phoneBookNames[i]) == 0) {
-            screen.print(phoneBookNumbers[i]);
-            if (strlen(phoneBookNumbers[i]) < SCREEN_WIDTH) screen.println();
-          } else {
+          if (strlen(phoneBookNames[i]) > 0) {
             screen.print(phoneBookNames[i]);
             if (strlen(phoneBookNames[i]) < SCREEN_WIDTH) screen.println();
+          } else if (strlen(phoneBookNumbers[i]) > 0) {
+            screen.print(phoneBookNumbers[i]);
+            if (strlen(phoneBookNumbers[i]) < SCREEN_WIDTH) screen.println();
+          } else if (phoneBookIndices[i] != 0) {
+            screen.println("Unknown");
           }
         }
         softKeys("back", "okay");
@@ -761,6 +763,8 @@ long hashPhoneNumber(char *s)
 // return true on success, false on failure.
 boolean phoneNumberToName(char *number, char *name, int namelen)
 {
+  if (number[0] == 0) return false;
+  
   long l = hashPhoneNumber(number);
   
   for (int i = 1; i < 256; i++) {
@@ -812,7 +816,10 @@ int loadphoneBookNamesForwards(int startingIndex, int n)
         phoneBookNames[i][ENTRY_SIZE - 1] = 0;
         strncpy(phoneBookNumbers[i], pb.number, ENTRY_SIZE);
         phoneBookNumbers[i][ENTRY_SIZE - 1] = 0;
-        if (pb.getPhoneBookType() != PHONEBOOK_SIM) phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE);
+        if (pb.getPhoneBookType() != PHONEBOOK_SIM) {
+          phoneBookNames[i][0] = 0; // the names in the call logs are never accurate (but sometimes present)
+          phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE);
+        }
         if (++i == n) break; // found a full page of entries
         if (phoneBookPage * NUMPHONEBOOKLINES + i == pb.getPhoneBookUsed()) break; // hit end of the phonebook
       }
@@ -840,7 +847,10 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
       phoneBookNames[i][ENTRY_SIZE - 1] = 0;
       strncpy(phoneBookNumbers[i], pb.number, ENTRY_SIZE);
       phoneBookNumbers[i][ENTRY_SIZE - 1] = 0;
-      if (pb.getPhoneBookType() != PHONEBOOK_SIM) phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE);
+      if (pb.getPhoneBookType() != PHONEBOOK_SIM) {
+        phoneBookNames[i][0] = 0; // the names in the call logs are never accurate (but sometimes present)
+        phoneNumberToName(phoneBookNumbers[i], phoneBookNames[i], ENTRY_SIZE);
+      }
       if (--i == -1) break; // found four entries
     }
   }

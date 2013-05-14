@@ -193,7 +193,7 @@ bool PhoneBook::parseCPBR()
   i = 0;
   while ((c = theGSM3ShieldV1ModemCore.theBuffer().read()) != 0) {
     if (c == '"') break;
-    number[i++] = c; // XXX: need to check for buffer overflow
+    if (i < PHONEBOOK_BUFLEN - 1) number[i++] = c;
   }
   number[i] = 0;
   
@@ -202,7 +202,7 @@ bool PhoneBook::parseCPBR()
   i = 0;
   while ((c = theGSM3ShieldV1ModemCore.theBuffer().read()) != 0) {
     if (c == '"') break;
-    name[i++] = c; // XXX: need to check for buffer overflow
+    if (i < PHONEBOOK_BUFLEN - 1) name[i++] = c;
   }
   name[i] = 0;
   

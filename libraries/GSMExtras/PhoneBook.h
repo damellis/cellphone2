@@ -14,6 +14,8 @@
 #define PHONEBOOK_OWNNUMBERS 5
 #define PHONEBOOK_GSMMODULE 6
 
+#define PHONEBOOK_BUFLEN 20
+
 class PhoneBook : public GSM3ShieldV1BaseProvider
 {		
   public:
@@ -39,8 +41,8 @@ class PhoneBook : public GSM3ShieldV1BaseProvider
   
     int phoneBookIndex;
     bool gotNumber;
-    char number[20];
-    char name[20];
+    char number[PHONEBOOK_BUFLEN];
+    char name[PHONEBOOK_BUFLEN];
   private:
     void queryPhoneBookContinue();
     void selectPhoneBookContinue();
