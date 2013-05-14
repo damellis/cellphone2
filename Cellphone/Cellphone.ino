@@ -54,6 +54,7 @@ char name[20];
 #define NAME_OR_NUMBER() (name[0] == 0 ? (number[0] == 0 ? "Unknown" : number) : name)
 
 int missed = 0;
+DateTime missedDateTime;
 
 GSM3_voiceCall_st prevVoiceCallStatus;
 
@@ -267,6 +268,7 @@ void loop() {
         screen.println(missed);
         screen.println("Last from: ");
         screen.println(NAME_OR_NUMBER());
+        screen.print(missedDateTime);
         softKeys("close", "call");
         
         if (key == 'L') {
@@ -396,17 +398,7 @@ void loop() {
           else screen.setTextColor(BLACK);
           
           if (phoneBookHasDateTime[i] && i == phoneBookLine && (millis() - lastKeyPressTime) % 2000 > 1000) {
-            screen.print(phoneBookDateTimes[i].hour);
-            screen.print(":");
-            if (phoneBookDateTimes[i].minute < 10) screen.print("0");
-            screen.print(phoneBookDateTimes[i].minute);
-            screen.print(" ");
-            screen.print(phoneBookDateTimes[i].month);
-            screen.print("/");
-            screen.print(phoneBookDateTimes[i].day);
-            screen.print("/");
-            if (phoneBookDateTimes[i].year < 10) screen.print("0");
-            screen.print(phoneBookDateTimes[i].year);
+            screen.print(phoneBookDateTimes[i]);
             screen.println();
           } else if (strlen(phoneBookNames[i]) > 0) {
             screen.print(phoneBookNames[i]);
@@ -603,6 +595,8 @@ void loop() {
         name[0] = 0;
         number[0] = 0;
       }
+      missedDateTime.year = clock.getYear(); missedDateTime.month = clock.getMonth(); missedDateTime.day = clock.getDay();
+      missedDateTime.hour = clock.getHour(); missedDateTime.minute = clock.getMinute(); missedDateTime.second = clock.getSecond();
       if (strlen(number) == 0) vcs.retrieveCallingNumber(number, sizeof(number));
       if (strlen(number) > 0 && name[0] == 0) {
         phoneNumberToName(number, name, sizeof(name) / sizeof(name[0]));
