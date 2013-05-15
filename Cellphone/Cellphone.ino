@@ -348,7 +348,8 @@ void loop() {
       } else if (mode == HOME) {
         softKeys("lock", "menu");
         
-        if (key >= '0' && key <= '9') {
+        if ((key >= '0' && key <= '9') || key == '#') {
+          lastKeyPressTime = millis();
           number[0] = key; number[1] = 0;
           mode = DIAL;
         } else if (key == 'L') {
@@ -890,18 +891,35 @@ int loadphoneBookNamesBackwards(int endingIndex, int n)
 
 void numberInput(char key, char *buf, int len)
 {
-  screen.print(buf);
-  screen.setTextColor(WHITE, BLACK);
-  screen.print(" ");
-  screen.setTextColor(BLACK);
+  int i = strlen(buf);
+  
+  if (i > 0 && (buf[i - 1] == '*' || buf[i - 1] == '#' || buf[i - 1] == '+') && millis() - lastKeyPressTime <= 1000) {
+    for (int j = 0; j < strlen(buf) - 1; j++) screen.print(buf[j]);
+    screen.setTextColor(WHITE, BLACK);
+    screen.print(buf[strlen(buf) - 1]);
+    screen.setTextColor(BLACK);
+  } else {
+    screen.print(buf);
+    screen.setTextColor(WHITE, BLACK);
+    screen.print(" ");
+    screen.setTextColor(BLACK);
+  }
   
   if (key >= '0' && key <= '9') {
-    int i = strlen(buf);
     if (i < len - 1) { buf[i] = key; buf[i + 1] = 0; }
   }
   if (key == '*') {
-    int i = strlen(buf);
     if (i > 0) { buf[i - 1] = 0; }
+  }
+  if (key == '#') {
+    if (i > 0 && (buf[i - 1] == '*' || buf[i - 1] == '#' || buf[i - 1] == '+') && millis() - lastKeyPressTime <= 1000) {
+      lastKeyPressTime = millis();
+      if (buf[i - 1] == '#') buf[i - 1] = '*';
+      else if (buf[i - 1] == '*') buf[i - 1] = '+';
+      else if (buf[i - 1] == '+') buf[i - 1] = '#';
+    } else {
+      if (i < len - 1) { buf[i] = '#'; buf[i + 1] = 0; lastKeyPressTime = millis(); }
+    }
   }
 }
 
