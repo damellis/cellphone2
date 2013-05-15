@@ -359,7 +359,8 @@ void loop() {
       } else if (mode == HOME) {
         softKeys("lock", "menu");
         
-        if (key >= '0' && key <= '9') {
+        if ((key >= '0' && key <= '9') || key == '#') {
+          lastKeyPressTime = millis();
           number[0] = key; number[1] = 0;
           mode = DIAL;
         } else if (key == 'L') {
@@ -895,15 +896,32 @@ void numberInput(char key, char *buf, int len)
   scrolling = false;
   screen.showCursor();
   
-  screen.print((strlen(buf) < 7) ? buf : (buf + strlen(buf) - 7));
+  int i = strlen(buf);
+  
+  if (i > 0 && (buf[i - 1] == '*' || buf[i - 1] == '#' || buf[i - 1] == '+') && millis() - lastKeyPressTime <= 1000) {
+    for (int i = (strlen(buf) < 8) ? 0 : (strlen(buf) - 8); i < strlen(buf); i++) screen.print(buf[i]);
+    terminateScreen = false;
+    screen.terminate();
+    screen.setCursor(screen.getCursor() - 1);
+  } else {
+    screen.print((strlen(buf) < 7) ? buf : (buf + strlen(buf) - 7));
+  }
   
   if (key >= '0' && key <= '9') {
-    int i = strlen(buf);
     if (i < len - 1) { buf[i] = key; buf[i + 1] = 0; }
   }
   if (key == '*') {
-    int i = strlen(buf);
     if (i > 0) { buf[i - 1] = 0; }
+  }
+  if (key == '#') {
+    if (i > 0 && (buf[i - 1] == '*' || buf[i - 1] == '#' || buf[i - 1] == '+') && millis() - lastKeyPressTime <= 1000) {
+      lastKeyPressTime = millis();
+      if (buf[i - 1] == '#') buf[i - 1] = '*';
+      else if (buf[i - 1] == '*') buf[i - 1] = '+';
+      else if (buf[i - 1] == '+') buf[i - 1] = '#';
+    } else {
+      if (i < len - 1) { buf[i] = '#'; buf[i + 1] = 0; lastKeyPressTime = millis(); }
+    }
   }
 }
 
