@@ -251,22 +251,20 @@ void loop() {
       prevmode = mode;
       
       if (mode == HOME || (mode == LOCKED && unlocking)) {
-//        screen.print(clock.getMonth());
-//        screen.print("/");
-//        screen.print(clock.getDay());
-//        screen.print("/");
-//        if (clock.getYear() < 10) screen.print('0');
-//        screen.print(clock.getYear());
-//
-//        screen.print(" ");
-//        if (clock.getMonth() < 10) screen.print(' ');
-//        if (clock.getDay() < 10) screen.print(' ');
-//        if (clock.getHour() < 10) screen.print(' ');
-        
         screen.print(clock.getHour());
         screen.print(":");
         if (clock.getMinute() < 10) screen.print('0');
         screen.print(clock.getMinute());
+      }
+      
+      if (mode == HOME) {
+        screen.print(" ");
+        screen.print(clock.getMonth());
+        screen.print("/");
+        screen.print(clock.getDay());
+        screen.print("/");
+        if (clock.getYear() < 10) screen.print('0');
+        screen.print(clock.getYear());
       }
       
       if (mode == MISSEDCALLALERT) {
