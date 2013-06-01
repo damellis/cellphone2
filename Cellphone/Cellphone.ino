@@ -402,7 +402,7 @@ void loop() {
             screen.print(phoneBookDateTimes[i]);
             screen.println();
           } else if (strlen(phoneBookNames[i]) > 0) {
-            screen.print(phoneBookNames[i]);
+            for (int j = 0; j < SCREEN_WIDTH && phoneBookNames[i][j]; j++) screen.print(phoneBookNames[i][j]);
             if (strlen(phoneBookNames[i]) < SCREEN_WIDTH) screen.println();
           } else if (strlen(phoneBookNumbers[i]) > 0) {
             screen.print(phoneBookNumbers[i]);
