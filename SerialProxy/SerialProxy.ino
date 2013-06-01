@@ -6,7 +6,7 @@ void setup() {
   delay(1000);
   digitalWrite(pwrkey, LOW);
   pinMode(pwrkey, OUTPUT);
-  delay(2000);
+  delay(12000);
   pinMode(pwrkey, INPUT);
   delay(1000);
 
