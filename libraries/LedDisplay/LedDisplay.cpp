@@ -166,7 +166,7 @@ void LedDisplay::terminate() {
 	
 void LedDisplay::display() {
 	for (int i = 0; i < 8; i++) {
-		boolean underline = cursorVisible && (scrollPos + i == cursorPos);
+		boolean underline = cursorVisible && ((i == 0 && cursorPos == 0) || scrollPos + i == cursorPos);
 		if (scrollPos + i < strlen(displayString)) writeCharacter(displayString[scrollPos + i], i, underline);
 		else writeCharacter(' ', i, underline);
 	}
