@@ -901,15 +901,20 @@ void numberInput(char key, char *buf, int len)
     terminateScreen = false;
     screen.terminate();
     screen.setCursor(screen.getCursor() - 1);
-  } else {
+  } else if (millis() - lastKeyPressTime < 5000) {
     screen.print((strlen(buf) < 7) ? buf : (buf + strlen(buf) - 7));
+  } else {
+    scrolling = true;
+    screen.print(buf);
   }
   
   if (key >= '0' && key <= '9') {
     if (i < len - 1) { buf[i] = key; buf[i + 1] = 0; }
+    lastKeyPressTime = millis();
   }
   if (key == '*') {
     if (i > 0) { buf[i - 1] = 0; }
+    lastKeyPressTime = millis();
   }
   if (key == '#') {
     if (i > 0 && (buf[i - 1] == '*' || buf[i - 1] == '#' || buf[i - 1] == '+') && millis() - lastKeyPressTime <= 1000) {
@@ -928,7 +933,10 @@ void textInput(char key, char *buf, int len)
   scrolling = false;
   screen.showCursor();
   
-  if (millis() - lastKeyPressTime > 1000) {
+  if (millis() - lastKeyPressTime > 5000) {
+    scrolling = true;
+    screen.print(buf);
+  } else if (millis() - lastKeyPressTime > 1000) {
     screen.print((strlen(buf) < 7) ? buf : (buf + strlen(buf) - 7));
   } else {
     for (int i = (strlen(buf) < 8) ? 0 : (strlen(buf) - 8); i < strlen(buf); i++) screen.print(buf[i]);
@@ -975,7 +983,7 @@ void textInput(char key, char *buf, int len)
   if (key == '*') {
     int i = strlen(buf);
     if (i > 0) { buf[i - 1] = 0; }
-    lastKeyPressTime = 0;
+    lastKeyPressTime = millis() - 1000;
     shiftNextKey = false;
   }
   if (key == '#') shiftNextKey = true;

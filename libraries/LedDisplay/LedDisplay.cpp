@@ -175,10 +175,12 @@ void LedDisplay::display() {
 }
 	
 void LedDisplay::scroll() {
-	if (strlen(displayString) > 8) {
+	int len = strlen(displayString);
+	if (cursorVisible && cursorPos + 1 > len) len = cursorPos + 1;
+	if (len > 8) {
 		scrollPos += scrollDir;
-	
-		if (scrollPos == strlen(displayString) - 8) {
+	  
+		if (scrollPos == len - 8) {
 			if (scrollDir == 1) scrollDir = 0;
 			else scrollDir = -1;
 		}
