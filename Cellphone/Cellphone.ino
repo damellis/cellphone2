@@ -23,7 +23,7 @@ PhoneBook pb;
 #define SCREEN_WIDTH 14
 #define ENTRY_SIZE 20
 
-int contrast = 35;
+int contrast = 50;
 
 unsigned long lastClockCheckTime, lastSMSCheckTime;
 
