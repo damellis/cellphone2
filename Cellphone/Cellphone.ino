@@ -258,7 +258,15 @@ void loop() {
       prevmode = mode;
       
       if (mode == HOME || (mode == LOCKED && unlocking)) {
+        long bandGap = 0;
+        for (int i = 0; i < 100; i++) bandGap += readBandGap();
+        int voltage = (1023L * 110 * 10 / (bandGap / 10));
+        
         screen.write((signalQuality + 4) / 6 + 26);
+        screen.write(constrain((voltage - 330) / 14, 0, 6) + 19);
+//        screen.print(voltage);
+        screen.print(" ");
+        if (clock.getHour() < 10) screen.print(" ");
         screen.print(clock.getHour());
         screen.print(":");
         if (clock.getMinute() < 10) screen.print('0');
@@ -348,7 +356,7 @@ void loop() {
           if (key == 'U') { brightness += 1; } 
           if (key == 'D') { brightness -= 1; }
           if (key == 'U' || key == 'D') { brightness = constrain(brightness, 0, 15); screen.setBrightness(brightness); lastKeyPressTime = millis(); }
-          if (millis() - lastKeyPressTime > 3500) unlocking = false;
+          if (millis() - lastKeyPressTime > 4000) unlocking = false;
           blank = false;
         } else {
           if (key) {
@@ -1014,3 +1022,24 @@ void softKeys(char *left, char *right)
 //  screen.display();
 }
 
+int readBandGap()
+{
+  uint8_t low, high;
+  
+  ADMUX = B01011110; // AVCC reference, right-adjust result, 1.1V input
+  
+  ADCSRA |= (1 << ADSC);
+  
+  // ADSC is cleared when the conversion finishes
+  while (bit_is_set(ADCSRA, ADSC));
+  
+  // we have to read ADCL first; doing so locks both ADCL
+  // and ADCH until ADCH is read.  reading ADCL second would
+  // cause the results of each conversion to be discarded,
+  // as ADCL and ADCH would be locked when it completed.
+  low  = ADCL;
+  high = ADCH;
+  
+  // combine the two bytes
+  return (high << 8) | low;
+}
