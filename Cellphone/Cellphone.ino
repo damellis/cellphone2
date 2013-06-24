@@ -15,6 +15,7 @@
 GSM gsmAccess(true);
 GSMVoiceCall vcs(false);
 GSM_SMS sms(false);
+GSMScanner scannerNetworks;
 GSM3ClockService clock;
 GSM3VolumeService volume;
 GSM3DTMF dtmf;
@@ -25,7 +26,8 @@ PhoneBook pb;
 
 int contrast = 50;
 
-unsigned long lastClockCheckTime, lastSMSCheckTime;
+int signalQuality;
+unsigned long lastClockCheckTime, lastSMSCheckTime, lastSignalQualityCheckTime;
 
 Adafruit_PCD8544 screen = Adafruit_PCD8544(16, 15, 14, 12, 13); // SCLK, DIN, D/C, CS, RST 
 
@@ -217,6 +219,11 @@ void loop() {
     lastClockCheckTime = millis();
   }
   
+  if (millis() - lastSignalQualityCheckTime > 10000) {
+    signalQuality = scannerNetworks.getSignalStrength().toInt();
+    lastSignalQualityCheckTime = millis();
+  }
+  
   screen.setTextColor(BLACK);
   
   GSM3_voiceCall_st voiceCallStatus = vcs.getvoiceCallStatus();
@@ -241,26 +248,33 @@ void loop() {
       back = false;
       prevmode = mode;
       
-      if (mode == HOME || (mode == LOCKED && unlocking)) {
+      if (mode == HOME || (mode == LOCKED && unlocking)) {        
         screen.setTextColor(WHITE, BLACK);
-        screen.print(clock.getMonth());
-        screen.print("/");
-        screen.print(clock.getDay());
-        screen.print("/");
-        if (clock.getYear() < 10) screen.print('0');
-        screen.print(clock.getYear());
-
-        screen.print(" ");
-        if (clock.getMonth() < 10) screen.print(' ');
-        if (clock.getDay() < 10) screen.print(' ');
+        screen.print("     ");
+        
+//        screen.print(clock.getMonth());
+//        screen.print("/");
+//        screen.print(clock.getDay());
+//        screen.print("/");
+//        if (clock.getYear() < 10) screen.print('0');
+//        screen.print(clock.getYear());
+//
+//        //screen.print(" ");
+//        if (clock.getMonth() < 10) screen.print(' ');
+//        if (clock.getDay() < 10) screen.print(' ');
         if (clock.getHour() < 10) screen.print(' ');
         
         screen.print(clock.getHour());
         screen.print(":");
         if (clock.getMinute() < 10) screen.print('0');
         screen.print(clock.getMinute());
+        screen.print("    ");
         
         screen.setTextColor(BLACK);
+        
+        if (signalQuality != 99)
+           for (int i = 1; i <= (signalQuality + 4) / 6; i++)
+             screen.drawFastVLine(i, 7 - i, i, WHITE);
       }
       
       if (mode == MISSEDCALLALERT) {
