@@ -14,6 +14,7 @@
 GSM gsmAccess(true);
 GSMVoiceCall vcs(false);
 GSM_SMS sms(false);
+GSMScanner scannerNetworks;
 GSM3ClockService clock;
 GSM3VolumeService volume;
 GSM3DTMF dtmf;
@@ -24,7 +25,8 @@ int brightness = 15;
 #define SCREEN_WIDTH 8
 #define ENTRY_SIZE 20
 
-unsigned long lastClockCheckTime, lastSMSCheckTime;
+int signalQuality;
+unsigned long lastClockCheckTime, lastSMSCheckTime, lastSignalQualityCheckTime;
 
 // _dataPin, _registerSelect, _clockPin, _chipEnable, _resetPin,  _displayLength
 LedDisplay screen = LedDisplay(22, 21, 20, 18, 17, 8);
@@ -246,25 +248,31 @@ void loop() {
         }
       }
 
+      if ((mode == HOME || (mode == LOCKED && !unlocking)) && millis() - lastSignalQualityCheckTime > 30000) {
+        signalQuality = scannerNetworks.getSignalStrength().toInt();
+        lastSignalQualityCheckTime = millis();
+      }
+  
       initmode = (mode != prevmode) && !back;
       back = false;
       prevmode = mode;
       
       if (mode == HOME || (mode == LOCKED && unlocking)) {
+        screen.write((signalQuality + 4) / 6 + 26);
         screen.print(clock.getHour());
         screen.print(":");
         if (clock.getMinute() < 10) screen.print('0');
         screen.print(clock.getMinute());
       }
       
-      if (mode == HOME) {
+      if (mode == LOCKED && unlocking) {
         screen.print(" ");
         screen.print(clock.getMonth());
         screen.print("/");
         screen.print(clock.getDay());
         screen.print("/");
         if (clock.getYear() < 10) screen.print('0');
-        screen.print(clock.getYear());
+        screen.print(clock.getYear());        
       }
       
       if (mode == MISSEDCALLALERT) {
@@ -340,7 +348,7 @@ void loop() {
           if (key == 'U') { brightness += 1; } 
           if (key == 'D') { brightness -= 1; }
           if (key == 'U' || key == 'D') { brightness = constrain(brightness, 0, 15); screen.setBrightness(brightness); lastKeyPressTime = millis(); }
-          if (millis() - lastKeyPressTime > 3000) unlocking = false;
+          if (millis() - lastKeyPressTime > 3500) unlocking = false;
           blank = false;
         } else {
           if (key) {

@@ -161,6 +161,10 @@ void LedDisplay::write(uint8_t b) {
 }
 
 void LedDisplay::terminate() {
+	if (displayString[cursorPos] != 0) {
+		scrollPos = 0; // reset the scroll when new data written
+		scrollDir = 0;
+	}
 	displayString[cursorPos] = 0; // XXX: should this be a separate function?
 }
 	
@@ -245,7 +249,7 @@ void LedDisplay::writeCharacter(char whatCharacter, byte whatPosition, uint8_t u
 
   // copy the appropriate bits into the dot register array:
   for (int i = 0; i < 5; i++) {
-    dotRegister[thisPosition+i] = (pgm_read_byte(&Font5x7[((whatCharacter - 0x20) * 5) + i])) | (underlined ? 0x40 : 0);
+    dotRegister[thisPosition+i] = (pgm_read_byte(&Font5x7[((whatCharacter - 0x1A) * 5) + i])) | (underlined ? 0x40 : 0);
   }
 }
 
