@@ -275,6 +275,17 @@ void loop() {
         if (signalQuality != 99)
            for (int i = 1; i <= (signalQuality + 4) / 6; i++)
              screen.drawFastVLine(i, 7 - i, i, WHITE);
+             
+        long bandGap = 0;
+        for (int i = 0; i < 100; i++) bandGap += readBandGap();
+        int voltage = (1023L * 110 * 10 / (bandGap / 10));
+        
+        screen.drawFastHLine(SCREEN_WIDTH * 6 - 5, 0, 3, WHITE); // top of battery
+        screen.drawFastVLine(SCREEN_WIDTH * 6 - 6, 1, 6, WHITE); // left side of battery
+        screen.drawFastVLine(SCREEN_WIDTH * 6 - 2, 1, 6, WHITE); // right side of battery
+        for (int i = 0; i < constrain((voltage - 330) / 14, 0, 6); i++) {
+          screen.drawFastHLine(SCREEN_WIDTH * 6 - 5, 6 - i, 3, WHITE);
+        }
       }
       
       if (mode == MISSEDCALLALERT) {
@@ -1013,3 +1024,24 @@ void softKeys(char *left, char *right)
   screen.display();
 }
 
+int readBandGap()
+{
+  uint8_t low, high;
+  
+  ADMUX = B01011110; // AVCC reference, right-adjust result, 1.1V input
+  
+  ADCSRA |= (1 << ADSC);
+  
+  // ADSC is cleared when the conversion finishes
+  while (bit_is_set(ADCSRA, ADSC));
+  
+  // we have to read ADCL first; doing so locks both ADCL
+  // and ADCH until ADCH is read.  reading ADCL second would
+  // cause the results of each conversion to be discarded,
+  // as ADCL and ADCH would be locked when it completed.
+  low  = ADCL;
+  high = ADCH;
+  
+  // combine the two bytes
+  return (high << 8) | low;
+}
