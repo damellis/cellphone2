@@ -219,11 +219,6 @@ void loop() {
     lastClockCheckTime = millis();
   }
   
-  if (millis() - lastSignalQualityCheckTime > 10000) {
-    signalQuality = scannerNetworks.getSignalStrength().toInt();
-    lastSignalQualityCheckTime = millis();
-  }
-  
   screen.setTextColor(BLACK);
   
   GSM3_voiceCall_st voiceCallStatus = vcs.getvoiceCallStatus();
@@ -242,6 +237,11 @@ void loop() {
           interruptedmode = mode;
           mode = TEXTALERT;
         }
+      }
+
+      if ((mode == HOME || (mode == LOCKED && !unlocking)) && millis() - lastSignalQualityCheckTime > 30000) {
+        signalQuality = scannerNetworks.getSignalStrength().toInt();
+        lastSignalQualityCheckTime = millis();
       }
 
       initmode = (mode != prevmode) && !back;
