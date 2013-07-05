@@ -12,6 +12,12 @@
 
 #include <Keypad.h>
 
+#include "pitches.h"
+
+int ringTone[] =          { NOTE_E5, NOTE_D5, NOTE_F4, NOTE_G4, NOTE_C5, NOTE_B5, NOTE_D4, NOTE_E4, NOTE_B5, NOTE_A5, NOTE_C4, NOTE_E4, NOTE_A5, 0 };
+int ringToneDurations[] = { 250,     250,     500,     500,     250,     250,     500,     500,     250,     250,     500,     500,     1000,    1000 };
+int ringToneIndex;
+
 GSM gsmAccess(true);
 GSMVoiceCall vcs(false);
 GSM_SMS sms(false);
@@ -27,7 +33,7 @@ PhoneBook pb;
 int contrast = 50;
 
 int signalQuality;
-unsigned long lastClockCheckTime, lastSMSCheckTime, lastSignalQualityCheckTime;
+unsigned long lastClockCheckTime, lastSMSCheckTime, lastSignalQualityCheckTime, noteStartTime;
 
 Adafruit_PCD8544 screen = Adafruit_PCD8544(16, 15, 14, 12, 13); // SCLK, DIN, D/C, CS, RST 
 
@@ -178,6 +184,8 @@ void setup() {
   screen.println("connecting...");
   screen.display();
   
+  pinMode(4, OUTPUT);
+  
   // restart the GSM module.
   // the library will attempt to start the module using pin 7, which is SCK
   // (and not connected to anything except the ISP header)
@@ -208,6 +216,8 @@ void setup() {
 void loop() {
   if (vcs.getvoiceCallStatus() == IDLE_CALL && mode == LOCKED) digitalWrite(17, LOW);
   else digitalWrite(17, HIGH);
+  
+  if (vcs.getvoiceCallStatus() != RECEIVINGCALL) noTone(4);
   
   char key = keypad.getKey();
   screen.clearDisplay();
@@ -620,6 +630,9 @@ void loop() {
         missed++;
         name[0] = 0;
         number[0] = 0;
+        noteStartTime = 0;
+        ringToneIndex = sizeof(ringTone) / sizeof(ringTone[0]) - 1; // index of last note, so we'll continue to the first one
+        
       }
       missedDateTime.year = clock.getYear(); missedDateTime.month = clock.getMonth(); missedDateTime.day = clock.getDay();
       missedDateTime.hour = clock.getHour(); missedDateTime.minute = clock.getMinute(); missedDateTime.second = clock.getSecond();
@@ -630,6 +643,12 @@ void loop() {
       screen.println("incoming:");
       screen.println(NAME_OR_NUMBER());
       softKeys("end", "answer");
+      if (millis() - noteStartTime > ringToneDurations[ringToneIndex]) {
+        ringToneIndex = (ringToneIndex + 1) % (sizeof(ringTone) / sizeof(ringTone[0]));
+        noteStartTime = millis();
+        if (ringTone[ringToneIndex] == 0) noTone(4);
+        else tone(4, ringTone[ringToneIndex]);
+      }
       if (key == 'L') {
         missed--;
         vcs.hangCall();
