@@ -2,15 +2,15 @@ int pwrkey = 19;
 
 void setup() {
   Serial.begin(9600);
+  Serial1.begin(9600);
   
   delay(1000);
   digitalWrite(pwrkey, LOW);
   pinMode(pwrkey, OUTPUT);
   delay(12000);
   pinMode(pwrkey, INPUT);
-  delay(1000);
+  delay(3000);
 
-  Serial1.begin(9600);
   Serial.println("READY");
   Serial1.print("AT\r");
 }
