@@ -85,8 +85,8 @@ DateTime missedDateTime;
 
 GSM3_voiceCall_st prevVoiceCallStatus;
 
-enum Mode { NOMODE, TEXTALERT, MISSEDCALLALERT, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, RECEIVEDCALLS, DIALEDCALLS, TEXTS, SETTIME };
-Mode mode = LOCKED, prevmode, backmode = mode, interruptedmode = mode;
+enum Mode { NOMODE, TEXTALERT, MISSEDCALLALERT, ALARMALERT, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, RECEIVEDCALLS, DIALEDCALLS, TEXTS, SETTIME, SETALARM };
+Mode mode = LOCKED, prevmode, backmode = mode, interruptedmode = mode, alarminterruptedmode = mode;
 boolean initmode, back, fromalert;
 
 struct menuentry_t {
@@ -100,6 +100,7 @@ menuentry_t mainmenu[] = {
   { "Received calls", RECEIVEDCALLS, 0 },
   { "Dialed calls", DIALEDCALLS, 0 },
   { "Set date+time", SETTIME, 0 },
+  { "Set alarm", SETALARM, 0 },
 };
 
 menuentry_t phoneBookEntryMenu[] = {
@@ -183,6 +184,9 @@ int setTimeMin[7] = {  1,  1, 0, 0,  1, 0, 0 };
 int setTimeMax[7] = { 12, 31, 9, 9, 24, 5, 9 };
 char *setTimeSeparators[7] = { "/", "/", "", " ", ":", "", "" };
 
+boolean alarmSetTemp, alarmSet = false;
+DateTime alarmTime; // note: date isn't used.
+
 boolean unlocking, blank;
 
 void setup() {
@@ -236,7 +240,7 @@ void loop() {
   if (vcs.getvoiceCallStatus() == IDLE_CALL && mode == LOCKED) digitalWrite(17, LOW);
   else digitalWrite(17, HIGH);
   
-  if (vcs.getvoiceCallStatus() != RECEIVINGCALL) noTone(4);
+  if (vcs.getvoiceCallStatus() != RECEIVINGCALL && (vcs.getvoiceCallStatus() != IDLE_CALL || mode != ALARMALERT)) noTone(4);
   
   char key = keypad.getKey();
   screen.clearDisplay();
@@ -257,12 +261,12 @@ void loop() {
   GSM3_voiceCall_st voiceCallStatus = vcs.getvoiceCallStatus();
   switch (voiceCallStatus) {
     case IDLE_CALL:
-      if (mode != MISSEDCALLALERT && prevmode != MISSEDCALLALERT && mode != LOCKED && mode != TEXTALERT && missed > 0) {
+      if (mode != MISSEDCALLALERT && prevmode != MISSEDCALLALERT && mode != LOCKED && mode != TEXTALERT && mode != ALARMALERT && missed > 0) {
         interruptedmode = mode;
         mode = MISSEDCALLALERT;
       }
     
-      if (mode != TEXTALERT && prevmode != TEXTALERT && mode != LOCKED && mode != MISSEDCALLALERT && millis() - lastSMSCheckTime > 10000) {
+      if (mode != TEXTALERT && prevmode != TEXTALERT && mode != LOCKED && mode != MISSEDCALLALERT && mode != ALARMALERT && millis() - lastSMSCheckTime > 10000) {
         lastSMSCheckTime = millis();
         sms.available();
         while (!sms.ready());
@@ -270,6 +274,11 @@ void loop() {
           interruptedmode = mode;
           mode = TEXTALERT;
         }
+      }
+      
+      if (mode != ALARMALERT && prevmode != ALARMALERT && alarmSet && clock.getHour() == alarmTime.hour && clock.getMinute() == alarmTime.minute) {
+        alarminterruptedmode = mode;
+        mode = ALARMALERT;
       }
 
       if ((mode == HOME || (mode == LOCKED && !unlocking)) && millis() - lastSignalQualityCheckTime > 30000) {
@@ -281,7 +290,7 @@ void loop() {
       back = false;
       prevmode = mode;
       
-      if (mode == HOME || (mode == LOCKED && unlocking)) {        
+      if (mode == HOME || (mode == LOCKED && unlocking) || mode == ALARMALERT) {        
         screen.setTextColor(WHITE, BLACK);
         screen.print("     ");
         
@@ -296,7 +305,6 @@ void loop() {
 //        if (clock.getMonth() < 10) screen.print(' ');
 //        if (clock.getDay() < 10) screen.print(' ');
         if (clock.getHour() < 10) screen.print(' ');
-        
         screen.print(clock.getHour());
         screen.print(":");
         if (clock.getMinute() < 10) screen.print('0');
@@ -377,6 +385,27 @@ void loop() {
         }
         if (key == 'D') {
           if (strlen(text) > (textline * SCREEN_WIDTH + 56)) textline++;
+        }
+      } else if (mode == ALARMALERT) {
+        if (initmode) {
+          blank = false;
+          noteStartTime = 0;
+          ringToneIndex = sizeof(ringTone) / sizeof(ringTone[0]) - 1; // index of last note, so we'll continue to the first one
+        }
+        
+        screen.print("Alarm!");
+        softKeys("okay");
+        if (millis() - noteStartTime > ringToneDurations[ringToneIndex]) {
+          ringToneIndex = (ringToneIndex + 1) % (sizeof(ringTone) / sizeof(ringTone[0]));
+          noteStartTime = millis();
+          if (ringTone[ringToneIndex] == 0) noTone(4);
+          else tone(4, ringTone[ringToneIndex]);
+        }
+        
+        if (key == 'L') {
+          alarmSet = false;
+          mode = alarminterruptedmode;
+          back = true;
         }
       } else if (mode == LOCKED) {
         if (initmode) {
@@ -622,6 +651,72 @@ void loop() {
             while (!clock.ready());
             lastClockCheckTime = millis();
             mode = HOME;
+          }
+        }
+      } else if (mode == SETALARM) {
+        if (initmode) {
+          setTimeValues[4] = alarmTime.hour;
+          setTimeValues[5] = alarmTime.minute / 10;
+          setTimeValues[6] = alarmTime.minute % 10;
+          alarmSetTemp = alarmSet;
+          setTimeField = -1;
+        }
+        
+        screen.println("Set alarm:");
+        
+        if (setTimeField == -1) screen.setTextColor(WHITE, BLACK);
+        if (alarmSetTemp) screen.print("ON");
+        else screen.print("OFF");
+        screen.setTextColor(BLACK);
+        screen.print(" ");
+        
+        if (alarmSetTemp) {
+          for (int i = 4; i < 7; i++) {
+            if (i == setTimeField) screen.setTextColor(WHITE, BLACK);
+            screen.print(setTimeValues[i]);
+            screen.setTextColor(BLACK);
+            screen.print(setTimeSeparators[i]);
+          }
+        }
+        
+        if ((setTimeField == -1 && alarmSetTemp == false) || setTimeField == 6) softKeys("cancel", "set");
+        else softKeys("cancel", "next");
+        
+        if (key == 'L') mode = HOME;
+        
+        if (key == 'U') {
+          if (setTimeField == -1) {
+            alarmSetTemp = !alarmSetTemp;
+          } else {
+            setTimeValues[setTimeField]++;
+            if (setTimeValues[setTimeField] > setTimeMax[setTimeField]) setTimeValues[setTimeField] = setTimeMin[setTimeField];
+          }
+        }
+        
+        if (key == 'D') {
+          if (setTimeField == -1) {
+            alarmSetTemp = !alarmSetTemp;
+          } else {
+            setTimeValues[setTimeField]--;
+            if (setTimeValues[setTimeField] < setTimeMin[setTimeField]) setTimeValues[setTimeField] = setTimeMax[setTimeField];
+          }
+        }
+        
+        if (key == 'R') {
+          if (setTimeField == -1) {
+            if (alarmSetTemp) setTimeField = 4;
+            else {
+              alarmSet = alarmSetTemp;
+              mode = HOME;
+            }
+          } else {
+            setTimeField++;
+            if (setTimeField == 7) {
+              alarmSet = alarmSetTemp;
+              alarmTime.hour = setTimeValues[4];
+              alarmTime.minute = setTimeValues[5] * 10 + setTimeValues[6];
+              mode = HOME;
+            }
           }
         }
       }
