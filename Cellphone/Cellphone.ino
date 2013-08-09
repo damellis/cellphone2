@@ -180,7 +180,7 @@ boolean shiftNextKey;
 int setTimeField;
 int setTimeValues[7]; // month, day, year (tens), year (ones), hour, minute (tens), minute (ones)
 int setTimeMin[7] = {  1,  1, 0, 0,  1, 0, 0 };
-int setTimeMax[7] = { 12, 31, 9, 9, 24, 9, 9 };
+int setTimeMax[7] = { 12, 31, 9, 9, 24, 5, 9 };
 char *setTimeSeparators[7] = { "/", "/", "", " ", ":", "", "" };
 
 unsigned long lastScrollTime = 0;
