@@ -31,6 +31,15 @@ struct DateTime : public Printable {
   int day;        /* day of the month */
   int month;         /* month */
   int year;        /* year */
+	
+  bool operator==(DateTime rhs) const {
+    return second == rhs.second && minute == rhs.minute && hour == rhs.hour &&
+           day == rhs.day && month == rhs.month && year == rhs.year;
+  }
+  
+  bool operator!=(DateTime rhs) const {
+    return !(*this == rhs);
+  }
   
   virtual size_t printTo(Print& p) const {
     int n = 0;

@@ -47,8 +47,8 @@ int GSM3ClockService::checkTimeContinue()
 
 int GSM3ClockService::setTime(int year, int month, int day, int hour, int minute, int second)
 {
-	this->year = year; this->month = month; this->day = day;
-	this->hour = hour; this->minute = minute; this->second = second;
+	this->datetime.year = year; this->datetime.month = month; this->datetime.day = day;
+	this->datetime.hour = hour; this->datetime.minute = minute; this->datetime.second = second;
 	theGSM3ShieldV1ModemCore.openCommand(this,SETCLOCK);
 	setTimeContinue();
 }
@@ -61,25 +61,25 @@ int GSM3ClockService::setTimeContinue()
 			theGSM3ShieldV1ModemCore.setCommandCounter(2);
 			theGSM3ShieldV1ModemCore.genericCommand_rq(PSTR("AT+CCLK=\""), false);
 			
-			if (year < 10) theGSM3ShieldV1ModemCore.print('0');
-			theGSM3ShieldV1ModemCore.print(year);
+			if (datetime.year < 10) theGSM3ShieldV1ModemCore.print('0');
+			theGSM3ShieldV1ModemCore.print(datetime.year);
 			theGSM3ShieldV1ModemCore.print("/");
-			if (month < 10) theGSM3ShieldV1ModemCore.print('0');
-			theGSM3ShieldV1ModemCore.print(month);
+			if (datetime.month < 10) theGSM3ShieldV1ModemCore.print('0');
+			theGSM3ShieldV1ModemCore.print(datetime.month);
 			theGSM3ShieldV1ModemCore.print("/");
-			if (day < 10) theGSM3ShieldV1ModemCore.print('0');
-			theGSM3ShieldV1ModemCore.print(day);
+			if (datetime.day < 10) theGSM3ShieldV1ModemCore.print('0');
+			theGSM3ShieldV1ModemCore.print(datetime.day);
 			
 			theGSM3ShieldV1ModemCore.print(",");
 			
-			if (hour < 10) theGSM3ShieldV1ModemCore.print('0');
-			theGSM3ShieldV1ModemCore.print(hour);
+			if (datetime.hour < 10) theGSM3ShieldV1ModemCore.print('0');
+			theGSM3ShieldV1ModemCore.print(datetime.hour);
 			theGSM3ShieldV1ModemCore.print(":");
-			if (minute < 10) theGSM3ShieldV1ModemCore.print('0');
-			theGSM3ShieldV1ModemCore.print(minute);
+			if (datetime.minute < 10) theGSM3ShieldV1ModemCore.print('0');
+			theGSM3ShieldV1ModemCore.print(datetime.minute);
 			theGSM3ShieldV1ModemCore.print(":");
-			if (second < 10) theGSM3ShieldV1ModemCore.print('0');
-			theGSM3ShieldV1ModemCore.print(second);
+			if (datetime.second < 10) theGSM3ShieldV1ModemCore.print('0');
+			theGSM3ShieldV1ModemCore.print(datetime.second);
 			
 			theGSM3ShieldV1ModemCore.print("+00\"\r"); // ignore timezone for now
 
@@ -102,19 +102,19 @@ bool GSM3ClockService::parseCCLK()
 		return false;
 	
 	//theGSM3ShieldV1ModemCore.theBuffer().read(); // "
-	year = theGSM3ShieldV1ModemCore.theBuffer().readInt();
+	datetime.year = theGSM3ShieldV1ModemCore.theBuffer().readInt();
 	theGSM3ShieldV1ModemCore.theBuffer().chopUntil("/", false);
-	month = theGSM3ShieldV1ModemCore.theBuffer().readInt();
+	datetime.month = theGSM3ShieldV1ModemCore.theBuffer().readInt();
 	theGSM3ShieldV1ModemCore.theBuffer().read(); // skip the previous '/'
 	theGSM3ShieldV1ModemCore.theBuffer().chopUntil("/", false);
-	day = theGSM3ShieldV1ModemCore.theBuffer().readInt();
+	datetime.day = theGSM3ShieldV1ModemCore.theBuffer().readInt();
 	theGSM3ShieldV1ModemCore.theBuffer().chopUntil(",", false);
-	hour = theGSM3ShieldV1ModemCore.theBuffer().readInt();
+	datetime.hour = theGSM3ShieldV1ModemCore.theBuffer().readInt();
 	theGSM3ShieldV1ModemCore.theBuffer().chopUntil(":", false);
-	minute = theGSM3ShieldV1ModemCore.theBuffer().readInt();
+	datetime.minute = theGSM3ShieldV1ModemCore.theBuffer().readInt();
 	theGSM3ShieldV1ModemCore.theBuffer().read(); // skip the previous ':'
 	theGSM3ShieldV1ModemCore.theBuffer().chopUntil(":", false);
-	second = theGSM3ShieldV1ModemCore.theBuffer().readInt();
+	datetime.second = theGSM3ShieldV1ModemCore.theBuffer().readInt();
 	theGSM3ShieldV1ModemCore.theBuffer().chopUntil("-", false);
 }
 
