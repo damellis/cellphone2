@@ -26,6 +26,6 @@ void loop() {
   if (Serial.available()) {
     int inByte = Serial.read();
     Serial1.write(inByte); 
-    Serial.write(inByte);
+    //Serial.write(inByte);
   }
 }
