@@ -23,6 +23,7 @@ along with the GSMExtras library.  If not, see <http://www.gnu.org/licenses/>.
 #define _GSM3CLOCKSERVICE_
 
 #include <GSM3ShieldV1ModemCore.h>
+#include <DateTime.h>
 
 class GSM3ClockService : public GSM3ShieldV1BaseProvider
 {
@@ -30,15 +31,16 @@ public:
 	void manageResponse(byte from, byte to);
 	int checkTime();
 	int setTime(int year, int month, int day, int hour, int minute, int second);
-	int getYear() { return year; }
-	int getMonth() { return month; }
-	int getDay() { return day; }
-	int getHour() { return hour; }
-	int getMinute() { return minute; }
-	int getSecond() { return second; }
+	DateTime getDateTime() { return datetime; }
+	int getYear() { return datetime.year; }
+	int getMonth() { return datetime.month; }
+	int getDay() { return datetime.day; }
+	int getHour() { return datetime.hour; }
+	int getMinute() { return datetime.minute; }
+	int getSecond() { return datetime.second; }
 	
 private:
-	int year, month, day, hour, minute, second;
+	DateTime datetime;
 	bool parseCCLK();
 	int checkTimeContinue();
 	int setTimeContinue();

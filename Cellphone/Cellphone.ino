@@ -243,8 +243,12 @@ void loop() {
   screen.setCursor(0, 0);
 
   if (millis() - lastClockCheckTime > 60000) {
-    clock.checkTime();
-    while (!clock.ready());
+    DateTime datetime;
+    do {
+      datetime = clock.getDateTime();
+      clock.checkTime();
+      while (!clock.ready());
+    } while (datetime != clock.getDateTime());
     lastClockCheckTime = millis();
   }
   
