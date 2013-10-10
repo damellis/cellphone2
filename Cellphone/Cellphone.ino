@@ -36,6 +36,8 @@ int ringTone[] =          { NOTE_E5, NOTE_D5, NOTE_F4, NOTE_G4, NOTE_C5, NOTE_B5
 int ringToneDurations[] = { 250,     250,     500,     500,     250,     250,     500,     500,     250,     250,     500,     500,     1000,    1000 };
 int ringToneIndex;
 
+boolean ring = true, ringTemp;
+
 GSM gsmAccess(true);
 GSMVoiceCall vcs(false);
 GSM_SMS sms(false);
@@ -85,7 +87,7 @@ DateTime missedDateTime;
 
 GSM3_voiceCall_st prevVoiceCallStatus;
 
-enum Mode { NOMODE, TEXTALERT, MISSEDCALLALERT, ALARMALERT, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, RECEIVEDCALLS, DIALEDCALLS, TEXTS, SETTIME, SETALARM };
+enum Mode { NOMODE, TEXTALERT, MISSEDCALLALERT, ALARMALERT, LOCKED, HOME, DIAL, PHONEBOOK, EDITENTRY, EDITTEXT, MENU, MISSEDCALLS, RECEIVEDCALLS, DIALEDCALLS, TEXTS, SETTIME, SETALARM, SETSILENT };
 Mode mode = LOCKED, prevmode, backmode = mode, interruptedmode = mode, alarminterruptedmode = mode;
 boolean initmode, back, fromalert;
 
@@ -96,6 +98,7 @@ struct menuentry_t {
 };
 
 menuentry_t mainmenu[] = {
+  { "Ring mode", SETSILENT, 0 },
   { "Missed calls", MISSEDCALLS, 0 },
   { "Received calls", RECEIVEDCALLS, 0 },
   { "Dialed calls", DIALEDCALLS, 0 },
@@ -307,7 +310,9 @@ void loop() {
         screen.write((signalQuality + 4) / 6 + 26);
         screen.write(constrain((voltage - 330) / 14, 0, 6) + 19);
 //        screen.print(voltage);
-        screen.print(" ");
+//        screen.print(" ");
+        if (ring) screen.write(' ');
+        else screen.write(17);
       }
       
       if (mode == ALARMALERT) screen.print("!! ");
@@ -710,6 +715,20 @@ void loop() {
             }
           }
         }
+      } else if (mode == SETSILENT) {
+        if (initmode) ringTemp = ring;
+        
+        if (millis() % 500 < 250) {
+          if (ringTemp) screen.print("Audible");
+          else screen.print("Silent");
+        }
+        
+        if (key == 'U' || key == 'D') ringTemp = !ringTemp;
+        if (key == 'L') mode = HOME;
+        if (key == 'R') {
+          ring = ringTemp;
+          mode = HOME;
+        }
       }
       break;
       
@@ -755,7 +774,7 @@ void loop() {
         ringToneIndex = (ringToneIndex + 1) % (sizeof(ringTone) / sizeof(ringTone[0]));
         noteStartTime = millis();
         if (ringTone[ringToneIndex] == 0) noTone(4);
-        else tone(4, ringTone[ringToneIndex]);
+        else if (ring) tone(4, ringTone[ringToneIndex]);
       }
       if (key == 'L') {
         missed--;

@@ -249,7 +249,7 @@ void LedDisplay::writeCharacter(char whatCharacter, byte whatPosition, uint8_t u
 
   // copy the appropriate bits into the dot register array:
   for (int i = 0; i < 5; i++) {
-    dotRegister[thisPosition+i] = (pgm_read_byte(&Font5x7[((whatCharacter - 0x13) * 5) + i])) | (underlined ? 0x40 : 0);
+    dotRegister[thisPosition+i] = (pgm_read_byte(&Font5x7[((whatCharacter - 0x11) * 5) + i])) | (underlined ? 0x40 : 0);
   }
 }
 
