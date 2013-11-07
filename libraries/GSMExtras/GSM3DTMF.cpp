@@ -28,3 +28,11 @@ void GSM3DTMF::tone(char c)
   theGSM3ShieldV1ModemCore.print(c);
   theGSM3ShieldV1ModemCore.print("\r");
 }
+
+void GSM3DTMF::localTone(char c)
+{
+  openGenericCommand();
+  theGSM3ShieldV1ModemCore.genericCommand_rq(PSTR("AT+QLDTMF=3,\""), false);
+  theGSM3ShieldV1ModemCore.print(c);
+  theGSM3ShieldV1ModemCore.print("\"\r");
+}
