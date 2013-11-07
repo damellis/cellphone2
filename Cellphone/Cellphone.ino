@@ -793,7 +793,10 @@ void loop() {
       screen.print(NAME_OR_NUMBER());
       softKeys("end");
       
-      if ((key >= '0' && key <= '9') || key == '#' || key == '*') dtmf.tone(key);
+      if ((key >= '0' && key <= '9') || key == '#' || key == '*') {
+        dtmf.tone(key);
+        dtmf.localTone(key);
+      }
       
       if (key == 'U' || key == 'D') {
         volume.checkVolume();

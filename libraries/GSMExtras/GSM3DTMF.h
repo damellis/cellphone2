@@ -27,6 +27,7 @@ along with the GSMExtras library.  If not, see <http://www.gnu.org/licenses/>.
 class GSM3DTMF : public GSM3GenericCommand {
 public:
   void tone(char);
+  void localTone(char);
 };
 
 #endif
