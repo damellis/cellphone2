@@ -4,12 +4,10 @@ void setup() {
   Serial.begin(9600);
   Serial1.begin(9600);
   
-  delay(1000);
-  digitalWrite(pwrkey, LOW);
-  pinMode(pwrkey, OUTPUT);
-  delay(2000);
-  pinMode(pwrkey, INPUT);
-  delay(3000);
+  pinMode(19, OUTPUT);
+  digitalWrite(19, LOW);
+  delay(12000);
+  digitalWrite(19, HIGH);  
 
   Serial.println("READY");
   Serial1.print("AT\r");

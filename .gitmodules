@@ -1,9 +1,3 @@
 [submodule "hardware"]
 	path = hardware
 	url = https://code.google.com/r/dmellis-sanguino/
-[submodule "libraries/Adafruit_GFX"]
-	path = libraries/Adafruit_GFX
-	url = https://github.com/adafruit/Adafruit-GFX-Library.git
-[submodule "libraries/Adafruit_PCD8544"]
-	path = libraries/Adafruit_PCD8544
-	url = https://github.com/adafruit/Adafruit-PCD8544-Nokia-5110-LCD-library.git
