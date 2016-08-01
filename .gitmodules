@@ -1,6 +1,6 @@
 [submodule "hardware"]
 	path = hardware
-	url = https://code.google.com/r/dmellis-sanguino/
+	url = https://github.com/damellis/sanguino.git
 [submodule "libraries/Adafruit_GFX"]
 	path = libraries/Adafruit_GFX
 	url = https://github.com/adafruit/Adafruit-GFX-Library.git
